@@ -1,10 +1,14 @@
-import { Task } from '../../../types';
+import { Task, SubTask, ParentTask } from '../../../types';
 import Link from 'next/link';
 
 interface TicketSummaryCardProps {
   ticket: Task;
   subtitle?: string;
   className?: string;
+}
+
+function hasDue(t: Task): t is SubTask | ParentTask {
+  return 'due' in t && typeof (t as SubTask | ParentTask).due !== 'undefined';
 }
 
 export default function TicketSummaryCard({ ticket, subtitle, className = '' }: TicketSummaryCardProps) {
@@ -22,8 +26,8 @@ export default function TicketSummaryCard({ ticket, subtitle, className = '' }: 
             {ticket.status && <span>Status: {ticket.status.replace('_', ' ')}</span>}
             {ticket.priority && <span>Priority: {ticket.priority}</span>}
             {typeof ticket.estimateHours === 'number' && <span>Est: {ticket.estimateHours}h</span>}
-            {'due' in ticket && (ticket as any).due && (
-              <span>due {(ticket as any).due}</span>
+            {hasDue(ticket) && ticket.due && (
+              <span>due {ticket.due}</span>
             )}
             {ticket.reviewDecision && <span>Decision: {ticket.reviewDecision}</span>}
           </div>

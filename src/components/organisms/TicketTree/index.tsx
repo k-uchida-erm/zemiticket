@@ -1,3 +1,4 @@
+/* eslint-disable react/no-children-prop */
 "use client";
 
 import { useState } from 'react';
@@ -6,7 +7,7 @@ import ParentTicketCard from '../../molecules/ParentTicketCard';
 
 interface TicketTreeProps {
   parent: ParentTask;
-  children: SubTask[];
+  subtasks: SubTask[];
 }
 
 function statusToMood(status?: ParentTask['status']): 'great' | 'normal' | 'rush' {
@@ -15,15 +16,14 @@ function statusToMood(status?: ParentTask['status']): 'great' | 'normal' | 'rush
   return 'normal';
 }
 
-export default function TicketTree({ parent, children }: TicketTreeProps) {
+export default function TicketTree({ parent, subtasks }: TicketTreeProps) {
   const [expanded, setExpanded] = useState<boolean>(true);
 
   return (
     <div className="relative">
-      {/* eslint-disable-next-line react/no-children-prop */}
       <ParentTicketCard
         parent={parent}
-        children={children}
+        children={subtasks}
         expanded={expanded}
         onToggle={() => setExpanded((v) => !v)}
         mood={statusToMood(parent.status)}

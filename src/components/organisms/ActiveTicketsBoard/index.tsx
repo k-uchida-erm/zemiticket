@@ -13,7 +13,7 @@ export default function ActiveTicketsBoard({ groups }: ActiveTicketsBoardProps) 
       <SectionTitle variant="emerald" icon={<IconBoard />}>Active Tickets</SectionTitle>
       <div className="space-y-3">
         {groups.map((g, idx) => (
-          <TicketTree key={idx} parent={g.parent} children={g.children} />
+          <TicketTree key={idx} parent={g.parent} subtasks={g.children} />
         ))}
       </div>
     </section>
