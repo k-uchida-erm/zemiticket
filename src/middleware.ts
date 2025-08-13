@@ -3,6 +3,16 @@ import { createServerClient } from '@supabase/ssr';
 
 const PUBLIC_PATHS = new Set<string>(['/auth/login', '/auth/callback', '/api/supabase-health', '/favicon.ico']);
 
+type CookieSetOptions = {
+  domain?: string;
+  expires?: Date | number;
+  httpOnly?: boolean;
+  maxAge?: number;
+  path?: string;
+  secure?: boolean;
+  sameSite?: 'lax' | 'strict' | 'none';
+};
+
 export async function middleware(req: NextRequest) {
   const { nextUrl, cookies: reqCookies } = req;
   const pathname = nextUrl.pathname;
@@ -18,13 +28,13 @@ export async function middleware(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
     {
       cookies: {
-        get(name: string) {
+        get(name: string): string | undefined {
           return reqCookies.get(name)?.value;
         },
-        set(name: string, value: string, options: any) {
+        set(name: string, value: string, options: CookieSetOptions = {}): void {
           res.cookies.set({ name, value, ...options });
         },
-        remove(name: string, options: any) {
+        remove(name: string, options: CookieSetOptions = {}): void {
           res.cookies.set({ name, value: '', ...options });
         },
       },
