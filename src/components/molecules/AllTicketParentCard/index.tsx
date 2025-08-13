@@ -16,10 +16,9 @@ export default function AllTicketParentCard({ parent, subtasks = [], onSelect }:
 
 	return (
 		<div role="button" onClick={() => onSelect?.(parent)} className="cursor-pointer">
-			{/* eslint-disable-next-line react/no-children-prop */}
 			<ParentTicketCard
 				parent={parent}
-				children={subtasks}
+				subtasks={subtasks}
 				size="xs"
 				renderSubticketsInside
 				hideProgress

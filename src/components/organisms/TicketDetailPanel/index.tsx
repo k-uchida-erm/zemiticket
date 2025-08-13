@@ -10,19 +10,19 @@ import IconPlus from '../../atoms/icons/Plus';
 
 interface TicketDetailPanelProps {
 	parent: ParentTask;
-	children: SubTask[];
+	subtasks?: SubTask[];
 	onClose?: () => void;
 	onSave?: (data: { title: string; description?: string; due?: string; subs: SubTaskWithLocal[] }) => void;
 	onToggleFullscreen?: () => void;
 	isFullscreen?: boolean;
 }
 
-export default function TicketDetailPanel({ parent, children, onClose, onSave, onToggleFullscreen, isFullscreen = false }: TicketDetailPanelProps) {
+export default function TicketDetailPanel({ parent, subtasks = [], onClose, onSave, onToggleFullscreen, isFullscreen = false }: TicketDetailPanelProps) {
 	const [editableTitle, setEditableTitle] = useState<string>(parent.title);
 	const [editableDesc, setEditableDesc] = useState<string>(parent.description || '');
 	const [editableDue, setEditableDue] = useState<string>(parent.due || '');
 	const [subs, setSubs] = useState<SubTaskWithLocal[]>(
-		(children || []).map((c) => ({
+		(subtasks || []).map((c) => ({
 			...c,
 			todos: (c.todos || []).map((t) => ({ ...t })),
 		}))
@@ -31,7 +31,7 @@ export default function TicketDetailPanel({ parent, children, onClose, onSave, o
 
 	const [openTodos, setOpenTodos] = useState<Record<number, boolean>>(() => {
 		const map: Record<number, boolean> = {};
-		for (const s of children || []) map[s.id] = true;
+		for (const s of subtasks || []) map[s.id] = true;
 		return map;
 	});
 	const [addingSub, setAddingSub] = useState<boolean>(false);
@@ -53,10 +53,10 @@ export default function TicketDetailPanel({ parent, children, onClose, onSave, o
 		setEditableTitle(parent.title || '');
 		setEditableDesc(parent.description || '');
 		setEditableDue(parent.due || '');
-		setSubs((children || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) })));
+		setSubs((subtasks || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) })));
 		setOpenTodos(() => {
 			const map: Record<number, boolean> = {};
-			for (const s of children || []) map[s.id] = true;
+			for (const s of subtasks || []) map[s.id] = true;
 			return map;
 		});
 		setAddingSub(false);
@@ -67,8 +67,8 @@ export default function TicketDetailPanel({ parent, children, onClose, onSave, o
 		setNewTodoTitle({});
 		setNewTodoEstimate({});
 		setDirty(false);
-	// include parent fields and children to satisfy exhaustive-deps
-	}, [parent.id, parent.title, parent.description, parent.due, children]);
+	// include parent fields and subtasks to satisfy exhaustive-deps
+	}, [parent.id, parent.title, parent.description, parent.due, subtasks]);
 
 	const computedProgress = useMemo(() => {
 		if (typeof parent.progressPercentage === 'number') return parent.progressPercentage;
@@ -92,7 +92,7 @@ export default function TicketDetailPanel({ parent, children, onClose, onSave, o
 				{dirty && (
 					<>
 						<button onClick={() => { const title = titleRef.current?.innerText ?? editableTitle; const desc = descRef.current?.innerText ?? editableDesc; onSave?.({ title, description: desc || undefined, due: editableDue || undefined, subs }); setDirty(false); }} className="px-3 py-1.5 text-[12px] rounded bg-[#00b393] text-white">Save</button>
-						<button onClick={() => { if (titleRef.current) titleRef.current.innerText = parent.title || ''; if (descRef.current) descRef.current.innerText = parent.description || ''; setEditableTitle(parent.title || ''); setEditableDesc(parent.description || ''); setEditableDue(parent.due || ''); setSubs((children || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) }))); setDirty(false); setAddingSub(false); setNewSubTitle(''); setNewSubDue(''); setNewSubEstimate(''); setAddingTodo({}); setNewTodoTitle({}); setNewTodoEstimate({}); }} className="px-3 py-1.5 text-[12px] rounded border border-neutral-300 text-neutral-700 bg-white">Cancel</button>
+						<button onClick={() => { if (titleRef.current) titleRef.current.innerText = parent.title || ''; if (descRef.current) descRef.current.innerText = parent.description || ''; setEditableTitle(parent.title || ''); setEditableDesc(parent.description || ''); setEditableDue(parent.due || ''); setSubs((subtasks || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) }))); setDirty(false); setAddingSub(false); setNewSubTitle(''); setNewSubDue(''); setNewSubEstimate(''); setAddingTodo({}); setNewTodoTitle({}); setNewTodoEstimate({}); }} className="px-3 py-1.5 text-[12px] rounded border border-neutral-300 text-neutral-700 bg-white">Cancel</button>
 					</>
 				)}
 				<button onClick={onToggleFullscreen} className="h-7 w-7 inline-flex items-center justify-center rounded hover:bg-neutral-50 text-neutral-600" aria-label="Toggle fullscreen">

@@ -1,10 +1,8 @@
 import ActiveTicketsBoard from '../components/organisms/ActiveTicketsBoard/index';
-import TicketSummaryCard from '../components/molecules/TicketSummaryCard/index';
 import OthersActiveRow from '../components/molecules/OthersActiveRow/index';
 import SectionTitle from '../components/atoms/SectionTitle/index';
 import { ParentTask, SubTask } from '../types';
 import IconList from '../components/atoms/icons/List';
-import IconCalendar from '../components/atoms/icons/Calendar';
 import IconUser from '../components/atoms/icons/User';
 import SubmittedTicketCard from '../components/molecules/SubmittedTicketCard';
 
@@ -73,7 +71,7 @@ export default function Home() {
     },
   ];
 
-  const submittingTickets = [
+  const submittingTickets: Array<ParentTask & { children?: SubTask[] }> = [
     {
       id: 101,
       title: '進捗レポート(5月第2週)',
@@ -137,7 +135,7 @@ export default function Home() {
     },
   ];
 
-  const othersActiveParents = [
+  const othersActiveParents: Array<ParentTask & { children: SubTask[] }> = [
     {
       id: 201,
       title: '評価実験(被験者募集・日程)',
@@ -205,7 +203,7 @@ export default function Home() {
     },
   ];
 
-  const othersGrouped = [
+  const othersGrouped: { user: string; tickets: Array<ParentTask & { children: SubTask[] }> }[] = [
     { user: '山本 蓮', tickets: [othersActiveParents[0]] },
     { user: '山田 純', tickets: [othersActiveParents[1]] },
   ];
@@ -218,7 +216,7 @@ export default function Home() {
           <SectionTitle variant="amber" icon={<IconUser />}>Others Active Tickets</SectionTitle>
           <div className="space-y-3">
             {othersGrouped.map((g, idx) => (
-              <OthersActiveRow key={idx} user={g.user} tickets={g.tickets as any} />
+              <OthersActiveRow key={idx} user={g.user} tickets={g.tickets} />
             ))}
           </div>
         </section>
@@ -229,7 +227,7 @@ export default function Home() {
           <SectionTitle variant="indigo" icon={<IconList />}>In Review Tickets</SectionTitle>
             <div className="space-y-3">
               {submittingTickets.map((t) => (
-                <SubmittedTicketCard key={t.id} ticket={t as any} />
+                <SubmittedTicketCard key={t.id} ticket={t} />
               ))}
             </div>
         </section>

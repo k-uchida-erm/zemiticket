@@ -11,7 +11,7 @@ export default function SignInPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then((res: any) => setUserEmail(res.data.user?.email ?? null));
+    supabase.auth.getUser().then((res: { data: { user: { email?: string } | null } }) => setUserEmail(res.data.user?.email ?? null));
   }, []);
 
   const onSubmit = useCallback(async (e: React.FormEvent) => {

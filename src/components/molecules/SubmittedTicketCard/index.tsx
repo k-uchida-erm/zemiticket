@@ -14,21 +14,23 @@ function toParentTask(t: Task): ParentTask {
     id: t.id,
     title: t.title,
     user: t.user,
-    due: (t as any).due,
     description: t.description,
     slug: t.slug,
     status: t.status,
     priority: t.priority,
     commentsCount: t.commentsCount,
     updatedAt: t.updatedAt,
-    estimateHours: (t as any).estimateHours,
-    epic: (t as any).epic,
-  } as any;
+    estimateHours: t.estimateHours,
+    epic: t.epic,
+    // optional fields specific to ParentTask
+    due: (t as Partial<ParentTask>).due,
+    progressPercentage: (t as Partial<ParentTask>).progressPercentage,
+  };
 }
 
 export default function SubmittedTicketCard({ ticket }: SubmittedTicketCardProps) {
   const parent = toParentTask(ticket);
-  const children = (ticket as any).children || [];
+  const children: SubTask[] = ticket.children || [];
   const latestComment = Array.isArray(ticket.reviewComments) && ticket.reviewComments.length > 0
     ? ticket.reviewComments[ticket.reviewComments.length - 1]
     : undefined;
@@ -48,7 +50,7 @@ export default function SubmittedTicketCard({ ticket }: SubmittedTicketCardProps
     <div className="mb-3">
       <ParentTicketCard
         parent={parent}
-        children={children}
+        subtasks={children}
         expanded={expanded}
         onToggle={() => setExpanded((v) => !v)}
         renderSubticketsInside

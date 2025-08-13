@@ -24,7 +24,7 @@ export default function ResearchSettingsPage() {
           { key: 'notes', label: 'Notes' },
         ]}
         activeKey={activeTab}
-        onChange={(k) => setActiveTab(k as any)}
+        onChange={(k) => setActiveTab(k as 'overview' | 'structure' | 'notes')}
       />
 
       <SectionTitle icon={<IconFlask />}>Research settings</SectionTitle>

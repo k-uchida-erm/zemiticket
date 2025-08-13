@@ -18,10 +18,10 @@ export async function POST(req: Request) {
 					get(name: string) {
 						return cookieStore.get(name)?.value;
 					},
-					set(name: string, value: string, options: any) {
+					set(name: string, value: string, options: Record<string, unknown>) {
 						cookieStore.set({ name, value, ...options });
 					},
-					remove(name: string, options: any) {
+					remove(name: string, options: Record<string, unknown>) {
 						cookieStore.delete({ name, ...options });
 					},
 				},
@@ -32,7 +32,8 @@ export async function POST(req: Request) {
 		if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 });
 
 		return NextResponse.json({ ok: true });
-	} catch (e: any) {
-		return NextResponse.json({ ok: false, message: e?.message || 'Unexpected error' }, { status: 500 });
+	} catch (e: unknown) {
+		const msg = e instanceof Error ? e.message : 'Unexpected error';
+		return NextResponse.json({ ok: false, message: msg }, { status: 500 });
 	}
 } 

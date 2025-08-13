@@ -128,7 +128,7 @@ export default function TicketIndexPage() {
 							(() => {
 								const group = parents.find((g) => g.parent.id === selected.id);
 								return (
-									<TicketDetailPanel parent={selected} children={group?.children || []} onClose={onClose} onSave={() => onClose()} />
+									<TicketDetailPanel parent={selected} subtasks={group?.children || []} onClose={onClose} onSave={() => onClose()} />
 								);
 							})()
 						) : null}

@@ -10,7 +10,8 @@ export async function GET() {
     // Lightweight call: just attempt to fetch current session (no auth expected)
     const { data, error } = await supabase.auth.getSession();
     return NextResponse.json({ ok: true, urlConfigured: !!url, keyConfigured: !!key, session: !!data?.session, error: error?.message || null, timestamp: new Date().toISOString() });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, message: e?.message || 'Unknown error' }, { status: 500 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Unknown error';
+    return NextResponse.json({ ok: false, message: msg }, { status: 500 });
   }
 } 

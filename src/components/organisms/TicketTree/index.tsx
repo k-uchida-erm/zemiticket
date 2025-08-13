@@ -1,4 +1,3 @@
-/* eslint-disable react/no-children-prop */
 "use client";
 
 import { useState } from 'react';
@@ -23,7 +22,7 @@ export default function TicketTree({ parent, subtasks }: TicketTreeProps) {
     <div className="relative">
       <ParentTicketCard
         parent={parent}
-        children={subtasks}
+        subtasks={subtasks}
         expanded={expanded}
         onToggle={() => setExpanded((v) => !v)}
         mood={statusToMood(parent.status)}

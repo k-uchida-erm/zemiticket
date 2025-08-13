@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../../lib/supabase/client";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const params = useSearchParams();
   const nextPath = useMemo(() => params.get('redirect') || '/', [params]);
@@ -42,7 +42,7 @@ export default function LoginPage() {
   }, [nextPath, router]);
 
   useEffect(() => {
-    supabase.auth.getUser().then((res: any) => setUserEmail(res.data.user?.email ?? null));
+    supabase.auth.getUser().then((res: { data: { user: { email?: string } | null } }) => setUserEmail(res.data.user?.email ?? null));
   }, []);
 
   const onSubmit = useCallback(async (e: React.FormEvent) => {
@@ -112,5 +112,13 @@ export default function LoginPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen grid place-items-center">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 } 

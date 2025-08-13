@@ -21,11 +21,10 @@ export default function OthersActiveRow({ user, tickets }: OthersActiveRowProps)
       </div>
       <div className="flex-1 space-y-3">
         {tickets.map((t) => (
-          // eslint-disable-next-line react/no-children-prop
           <ParentTicketCard
             key={t.id}
             parent={t}
-            children={t.children || []}
+            subtasks={t.children || []}
             expanded={!!expanded[t.id]}
             onToggle={() => toggle(t.id)}
             size="sm"
