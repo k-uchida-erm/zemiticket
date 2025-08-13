@@ -40,10 +40,13 @@ export default function Header() {
   return (
     <header className="relative h-16 bg-white border-b border-neutral-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 fixed inset-x-0 top-0 z-40 before:content-[''] before:absolute before:left-0 before:right-0 before:-top-12 before:h-12 before:bg-white">
       <Link href="/" className="flex items-center gap-3 pl-[0%]">
-        <img
+        <Image
           src="/zemiticket_icon.png"
           alt="app icon"
+          width={40}
+          height={40}
           className="h-10 w-auto"
+          priority
         />
         <Image
           src="/zemiticket_logo.svg"

@@ -27,7 +27,7 @@ export default function TicketKanban({ tickets }: TicketKanbanProps) {
     todo: tickets.filter((t) => t.status === 'todo'),
     in_progress: tickets.filter((t) => t.status === 'in_progress'),
     review: tickets.filter((t) => t.status === 'review'),
-  } as any);
+  });
 
   const onDragStart = useCallback((e: React.DragEvent, task: Task, from: ColKey) => {
     e.dataTransfer.setData('application/json', JSON.stringify({ id: task.id, from }));
@@ -46,9 +46,9 @@ export default function TicketKanban({ tickets }: TicketKanbanProps) {
       const idx = source.findIndex((t) => t.id === id);
       if (idx === -1) return prev;
       const [task] = source.splice(idx, 1);
-      task.status = to as any;
-      target.unshift(task);
-      return { ...prev, [from]: source, [to]: target } as any;
+      const updated: Task = { ...task, status: to };
+      target.unshift(updated);
+      return { ...prev, [from]: source, [to]: target };
     });
   }, []);
 
