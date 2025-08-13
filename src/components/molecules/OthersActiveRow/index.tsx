@@ -1,0 +1,38 @@
+"use client";
+
+import { useState, useCallback } from 'react';
+import { ParentTask, SubTask } from '../../../types';
+import Avatar from '../../atoms/Avatar';
+import ParentTicketCard from '../ParentTicketCard';
+
+interface OthersActiveRowProps {
+  user: string;
+  tickets: (ParentTask & { children?: SubTask[] })[];
+}
+
+export default function OthersActiveRow({ user, tickets }: OthersActiveRowProps) {
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const toggle = useCallback((id: number) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] })), []);
+
+  return (
+    <div className="flex items-start gap-3">
+      <div className="pt-1">
+        <Avatar name={user} />
+      </div>
+      <div className="flex-1 space-y-3">
+        {tickets.map((t) => (
+          <ParentTicketCard
+            key={t.id}
+            parent={t as ParentTask}
+            children={(t.children || []).map((c) => ({ ...c }))}
+            expanded={!!expanded[t.id]}
+            onToggle={() => toggle(t.id)}
+            size="sm"
+            renderSubticketsInside
+            childrenReadOnly
+          />
+        ))}
+      </div>
+    </div>
+  );
+} 

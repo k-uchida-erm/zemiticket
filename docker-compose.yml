@@ -1,0 +1,13 @@
+# docker-compose.yml
+version: '3.8'
+services:
+  app:
+    build: .
+    container_name: zemiticket-app
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    tty: true
