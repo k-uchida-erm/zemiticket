@@ -6,19 +6,20 @@ import type { ParentTask, SubTask } from '../../../types';
 
 interface AllTicketParentCardProps {
 	parent: ParentTask;
-	children?: SubTask[];
+	subtasks?: SubTask[];
 	onSelect?: (parent: ParentTask) => void;
 }
 
-export default function AllTicketParentCard({ parent, children = [], onSelect }: AllTicketParentCardProps) {
+export default function AllTicketParentCard({ parent, subtasks = [], onSelect }: AllTicketParentCardProps) {
 	const [expanded, setExpanded] = useState<boolean>(false);
 	const onToggle = useCallback(() => setExpanded((v) => !v), []);
 
 	return (
 		<div role="button" onClick={() => onSelect?.(parent)} className="cursor-pointer">
+			{/* eslint-disable-next-line react/no-children-prop */}
 			<ParentTicketCard
 				parent={parent}
-				children={children}
+				children={subtasks}
 				size="xs"
 				renderSubticketsInside
 				hideProgress

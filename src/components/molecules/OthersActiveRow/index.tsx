@@ -7,7 +7,7 @@ import ParentTicketCard from '../ParentTicketCard';
 
 interface OthersActiveRowProps {
   user: string;
-  tickets: (ParentTask & { children?: SubTask[] })[];
+  tickets: Array<ParentTask & { children?: SubTask[] }>; // strictly typed, no any
 }
 
 export default function OthersActiveRow({ user, tickets }: OthersActiveRowProps) {
@@ -21,10 +21,11 @@ export default function OthersActiveRow({ user, tickets }: OthersActiveRowProps)
       </div>
       <div className="flex-1 space-y-3">
         {tickets.map((t) => (
+          // eslint-disable-next-line react/no-children-prop
           <ParentTicketCard
             key={t.id}
-            parent={t as ParentTask}
-            children={(t.children || []).map((c) => ({ ...c }))}
+            parent={t}
+            children={t.children || []}
             expanded={!!expanded[t.id]}
             onToggle={() => toggle(t.id)}
             size="sm"

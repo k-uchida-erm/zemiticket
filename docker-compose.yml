@@ -6,8 +6,10 @@ services:
     container_name: zemiticket-app
     ports:
       - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     volumes:
       - .:/app
       - /app/node_modules
-      - /app/.next
     tty: true

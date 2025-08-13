@@ -6,7 +6,6 @@ import AllTicketParentCard from '../../components/molecules/AllTicketParentCard'
 import type { ParentTask, SubTask } from '../../types';
 import SectionTitle from '../../components/atoms/SectionTitle';
 import IconList from '../../components/atoms/icons/List';
-import ParentTicketCard from '../../components/molecules/ParentTicketCard';
 import TicketDetailPanel from '../../components/organisms/TicketDetailPanel';
 import IconPlus from '../../components/atoms/icons/Plus';
 import TicketCreateForm from '../../components/molecules/TicketCreateForm';
@@ -99,7 +98,7 @@ export default function TicketIndexPage() {
 									<AllTicketParentCard
 										key={g.parent.id}
 										parent={g.parent}
-										children={g.children}
+										subtasks={g.children}
 										onSelect={onSelect}
 									/>
 								))}
@@ -110,19 +109,17 @@ export default function TicketIndexPage() {
 			</div>
 			<div className="col-span-7 border-l border-neutral-200 relative overflow-hidden">
 				<div className="min-h-[calc(100vh-4rem)] px-6">
-					<SubHeader items={[{ key: 'kanban', label: 'Kanban' }, { key: 'timeline', label: 'Timeline' }]} activeKey={rightView} onChange={(k) => setRightView(k as any)} />
+					<SubHeader items={[{ key: 'kanban', label: 'Kanban' }, { key: 'timeline', label: 'Timeline' }]} activeKey={rightView} onChange={(k) => setRightView(k as 'kanban' | 'timeline')} />
 					<div className="pt-3">
 						{rightView === 'kanban' ? (
-							<TicketKanban tickets={kanbanTickets as any} />
+							<TicketKanban tickets={kanbanTickets} />
 						) : (
 							<section>
-								{/* Placeholder for Timeline view */}
 								<div className="text-[13px] text-neutral-600">Timeline coming soon...</div>
 							</section>
 						)}
 					</div>
 				</div>
-				{/* Slide-in detail/create panel (appears above the menu bar) */}
 				<div className={`absolute inset-0 h-full w-full bg-white transition-transform duration-300 translate-x-full ${(selected || creatingEpic) ? '!translate-x-0' : ''} z-50`}>
 					<div className="overflow-auto h-full px-6 pt-0 pb-4">
 						{creatingEpic ? (

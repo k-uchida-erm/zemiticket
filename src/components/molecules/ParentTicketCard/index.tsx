@@ -14,6 +14,8 @@ import IconCircleCheck from '../../atoms/icons/CircleCheck';
 
 interface ParentTicketCardProps {
 	parent: ParentTask;
+	subtasks?: SubTask[];
+	// legacy support (will be removed):
 	children?: SubTask[];
 	expanded?: boolean;
 	onToggle?: () => void;
@@ -29,10 +31,10 @@ interface ParentTicketCardProps {
 	disableLinks?: boolean;
 }
 
-function calcProgress(children: SubTask[]): number {
-	if (children.length === 0) return 0;
-	const completed = children.filter((c) => c.done).length;
-	return Math.round((completed / children.length) * 100);
+function calcProgress(list: SubTask[]): number {
+	if (list.length === 0) return 0;
+	const completed = list.filter((c) => c.done).length;
+	return Math.round((completed / list.length) * 100);
 }
 
 function formatDue(due?: string): string {
@@ -43,8 +45,9 @@ function formatDue(due?: string): string {
 	return `${due}`;
 }
 
-export default function ParentTicketCard({ parent, children = [], expanded = true, onToggle, size = 'md', renderSubticketsInside = false, mood = 'normal', childrenReadOnly = false, hideProgress = false, hideDue = false, inlineBadge, hideEpic = false, hideIcon = false, disableLinks = false }: ParentTicketCardProps) {
-	const computedProgress = parent.progressPercentage ?? calcProgress(children);
+export default function ParentTicketCard({ parent, subtasks, children, expanded = true, onToggle, size = 'md', renderSubticketsInside = false, mood = 'normal', childrenReadOnly = false, hideProgress = false, hideDue = false, inlineBadge, hideEpic = false, hideIcon = false, disableLinks = false }: ParentTicketCardProps) {
+	const subtasksList: SubTask[] = Array.isArray(subtasks) ? subtasks : (children || []);
+	const computedProgress = parent.progressPercentage ?? calcProgress(subtasksList);
 
 	const handleToggleClick = (e: React.MouseEvent) => {
 		e.preventDefault();
@@ -64,9 +67,8 @@ export default function ParentTicketCard({ parent, children = [], expanded = tru
 	const titleRowMt = isXs ? 'mt-0' : 'mt-1';
 	const titleRowGap = isXs ? 'gap-2' : 'gap-3';
 	const descMt = isXs ? 'mt-0.5' : 'mt-1';
-	const showToggle = !!onToggle || children.length > 0;
+	const showToggle = !!onToggle || subtasksList.length > 0;
 
-	// Wrap entire card as a link only when we are NOT rendering subtickets inside and links are enabled
 	const willWrapWholeCard = !renderSubticketsInside && !!parent.slug && !disableLinks;
 
 	const titleNode = willWrapWholeCard
@@ -83,7 +85,6 @@ export default function ParentTicketCard({ parent, children = [], expanded = tru
 
 	const body = (
 		<Card className={`${cardPadding} ${minHeight} relative`}>
-			{/* Corner circle-check (xs only): center aligns with top-right corner */}
 			{isXs && (
 				<div className="absolute top-0 right-0 transform translate-x-[30%] -translate-y-[30%] pointer-events-none">
 					<span className="inline-flex items-center justify-center text-[#00b393] [&_svg]:w-4 [&_svg]:h-4">
@@ -103,7 +104,6 @@ export default function ParentTicketCard({ parent, children = [], expanded = tru
 			)}
 			<div className={`flex items-start justify-between gap-4 ${contentTopPad}`}>
 				<div className="flex-1 min-w-0">
-					{/* Epic chip above the title tightened further */}
 					{!hideEpic && (
 						<div className="-mt-2 mb-2">
 							{parent.epic && (
@@ -154,10 +154,10 @@ export default function ParentTicketCard({ parent, children = [], expanded = tru
 						</div>
 					)}
 
-					{renderSubticketsInside && expanded && children.length > 0 && (
+					{renderSubticketsInside && expanded && subtasksList.length > 0 && (
 						<div className="mt-0">
 							<ul className="space-y-0 divide-y divide-neutral-200 border-t border-neutral-200 mt-2">
-								{children.map((child) => (
+								{subtasksList.map((child) => (
 									<li key={child.id} className="relative">
 										<SubTicketCard ticket={child} variant="flat" readOnly={childrenReadOnly} disableLink={disableLinks} />
 									</li>
@@ -170,7 +170,6 @@ export default function ParentTicketCard({ parent, children = [], expanded = tru
 		</Card>
 	);
 
-	// If rendering subtickets inside, do not wrap the entire card in a link
 	if (!willWrapWholeCard) return body;
 
 	return (

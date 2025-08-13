@@ -42,7 +42,6 @@ export default function TicketDetailPanel({ parent, children, onClose, onSave, o
 	const [addingTodo, setAddingTodo] = useState<Record<number, boolean>>({});
 	const [newTodoTitle, setNewTodoTitle] = useState<Record<number, string>>({});
 	const [newTodoEstimate, setNewTodoEstimate] = useState<Record<number, string>>({});
-	const [editingSubDue, setEditingSubDue] = useState<Record<number, boolean>>({});
 
 	const titleRef = useRef<HTMLDivElement>(null);
 	const descRef = useRef<HTMLDivElement>(null);
@@ -67,9 +66,9 @@ export default function TicketDetailPanel({ parent, children, onClose, onSave, o
 		setAddingTodo({});
 		setNewTodoTitle({});
 		setNewTodoEstimate({});
-		setEditingSubDue({});
 		setDirty(false);
-	}, [parent.id]);
+	// include parent fields and children to satisfy exhaustive-deps
+	}, [parent.id, parent.title, parent.description, parent.due, children]);
 
 	const computedProgress = useMemo(() => {
 		if (typeof parent.progressPercentage === 'number') return parent.progressPercentage;
@@ -93,7 +92,7 @@ export default function TicketDetailPanel({ parent, children, onClose, onSave, o
 				{dirty && (
 					<>
 						<button onClick={() => { const title = titleRef.current?.innerText ?? editableTitle; const desc = descRef.current?.innerText ?? editableDesc; onSave?.({ title, description: desc || undefined, due: editableDue || undefined, subs }); setDirty(false); }} className="px-3 py-1.5 text-[12px] rounded bg-[#00b393] text-white">Save</button>
-						<button onClick={() => { if (titleRef.current) titleRef.current.innerText = parent.title || ''; if (descRef.current) descRef.current.innerText = parent.description || ''; setEditableTitle(parent.title || ''); setEditableDesc(parent.description || ''); setEditableDue(parent.due || ''); setSubs((children || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) }))); setDirty(false); setAddingSub(false); setNewSubTitle(''); setNewSubDue(''); setNewSubEstimate(''); setAddingTodo({}); setNewTodoTitle({}); setNewTodoEstimate({}); setEditingSubDue({}); }} className="px-3 py-1.5 text-[12px] rounded border border-neutral-300 text-neutral-700 bg-white">Cancel</button>
+						<button onClick={() => { if (titleRef.current) titleRef.current.innerText = parent.title || ''; if (descRef.current) descRef.current.innerText = parent.description || ''; setEditableTitle(parent.title || ''); setEditableDesc(parent.description || ''); setEditableDue(parent.due || ''); setSubs((children || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) }))); setDirty(false); setAddingSub(false); setNewSubTitle(''); setNewSubDue(''); setNewSubEstimate(''); setAddingTodo({}); setNewTodoTitle({}); setNewTodoEstimate({}); }} className="px-3 py-1.5 text-[12px] rounded border border-neutral-300 text-neutral-700 bg-white">Cancel</button>
 					</>
 				)}
 				<button onClick={onToggleFullscreen} className="h-7 w-7 inline-flex items-center justify-center rounded hover:bg-neutral-50 text-neutral-600" aria-label="Toggle fullscreen">
@@ -128,8 +127,6 @@ export default function TicketDetailPanel({ parent, children, onClose, onSave, o
 					aria-label="Title"
 				></div>
 			</div>
-
-			
 
 			{/* Inline editable description */}
 			<div className="mt-2">
@@ -220,7 +217,7 @@ export default function TicketDetailPanel({ parent, children, onClose, onSave, o
 										<button onClick={createSub} className="px-2 py-1 text-[12px] rounded bg-[#00b393] text-white">Add</button>
 									</div>
 								</div>
-                            </div>
+							</div>
 						)}
 					</div>
 				</div>
@@ -296,9 +293,6 @@ export default function TicketDetailPanel({ parent, children, onClose, onSave, o
 					i === subIdx ? { ...s, todos: (s.todos || []).map((t) => (t.id === todoId ? { ...t, done: !t.done } : t)) } : s
 				)
 			);
-	}
-	function updateSubEstimate(idx: number, value: string) {
-		setSubs((prev) => prev.map((s, i) => (i === idx ? { ...s, estimateHours: value === '' ? undefined : Number(value) } : s)));
 	}
 	function updateTodoEstimate(idx: number, todoId: number, value: string) {
 		setSubs((prev) =>
