@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import Header from "../../organisms/Header";
 import Sidebar from "../../organisms/Sidebar";
@@ -9,6 +9,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const collapsedSidebarWidth = '3.5vw';
   const contentMarginLeft = useMemo(() => collapsedSidebarWidth, []);
   const pathname = usePathname();
+
+  // Redirect implicit OAuth token hashes to /auth/login for processing
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('access_token')) {
+      const hash = window.location.hash;
+      if (!pathname.startsWith('/auth/login')) {
+        window.location.replace(`/auth/login${hash}`);
+      }
+    }
+  }, [pathname]);
+
   const isAuthRoute = pathname === '/auth/login' || pathname.startsWith('/auth/');
 
   if (isAuthRoute) {
