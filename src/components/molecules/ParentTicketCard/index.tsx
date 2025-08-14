@@ -84,7 +84,7 @@ export default function ParentTicketCard({ parent, subtasks, children, expanded 
 	const contentTopPad = isXs ? 'pt-0' : isSm ? 'pt-0' : 'pt-0';
 
 	const body = (
-		<Card className={`${cardPadding} ${minHeight} relative`}>
+		<Card className={`${cardPadding} ${minHeight} relative shadow-sm rounded-md`}>
 			{isXs && (
 				<div className="absolute top-0 right-0 transform translate-x-[30%] -translate-y-[30%] pointer-events-none">
 					<span className="inline-flex items-center justify-center text-[#00b393] [&_svg]:w-4 [&_svg]:h-4">
@@ -95,7 +95,7 @@ export default function ParentTicketCard({ parent, subtasks, children, expanded 
 			{parent.due && !hideDue && (
 				<div className={`absolute top-0 right-10 z-10 flex items-center gap-1`}>
 					<div className="rounded-t-none rounded-b-lg bg-white font-medium text-[14px] pl-2.5 pr-3 py-1.5 tracking-[0.02em] leading-none tabular-nums border-x border-b border-neutral-200/70 text-center">
-						<span className="text-neutral-700 font-[ui-rounded,'SF Pro Rounded','Hiragino Maru Gothic ProN','Noto Sans JP',sans-serif]">{formatDue(parent.due)}</span>
+						<span className="text-neutral-700 font-['Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif]">due {formatDue(parent.due)}</span>
 					</div>
 					<span className={`inline-flex items-center justify-center [&_svg]:w-5 [&_svg]:h-5 ${mood === 'great' ? 'text-red-500' : mood === 'rush' ? 'text-blue-500' : 'text-amber-500'}`}>
 						{mood === 'great' ? <IconMoodGreat /> : mood === 'rush' ? <IconMoodRush /> : <IconMoodNormal />}
@@ -120,7 +120,7 @@ export default function ParentTicketCard({ parent, subtasks, children, expanded 
 									<IconTicket />
 								</span>
 							)}
-							<h3 className={`${titleText} ${titleLeading} font-normal tracking-tight text-neutral-900 truncate`}>{titleNode}</h3>
+							<h3 className={`${titleText} ${titleLeading} font-semibold tracking-tight text-neutral-800 truncate`}>{titleNode}</h3>
 							{typeof parent.estimateHours === 'number' && (
 								<span className="shrink-0 text-[10px] px-1.5 py-[1px] rounded-full bg-indigo-700 text-white">{parent.estimateHours}h</span>
 							)}

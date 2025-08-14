@@ -32,13 +32,19 @@ function LoginContent() {
             setError(error.message);
             return;
           }
-          await fetch('/api/auth/sync', {
+          const origin = typeof window !== 'undefined' ? window.location.origin : '';
+          const host = typeof window !== 'undefined' ? window.location.hostname : '';
+          const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+          const baseUrl = isLocal ? origin : (process.env.NEXT_PUBLIC_SITE_URL || origin);
+          const dest = nextPath || '/';
+          // Absolute redirect to ensure correct origin
+          if (typeof window !== 'undefined') window.location.replace(`${baseUrl}${dest}`);
+          // Fire-and-forget cookie sync
+          fetch('/api/auth/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ access_token, refresh_token })
-          });
-          const dest = nextPath || '/';
-          router.replace(dest);
+          }).catch(() => {});
         })();
       }
     }
@@ -47,12 +53,28 @@ function LoginContent() {
     supabaseRef.current.auth.getUser().then((res: { data: { user: { email?: string } | null } }) => setUserEmail(res.data.user?.email ?? null));
   }, [nextPath, router]);
 
+  // If already logged in and no hash to process, redirect immediately
+  useEffect(() => {
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    if (userEmail && (!hash || !hash.includes('access_token'))) {
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const host = typeof window !== 'undefined' ? window.location.hostname : '';
+      const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+      const baseUrl = isLocal ? origin : (process.env.NEXT_PUBLIC_SITE_URL || origin);
+      const dest = nextPath || '/';
+      if (typeof window !== 'undefined') window.location.replace(`${baseUrl}${dest}`);
+    }
+  }, [userEmail, nextPath, router]);
+
   const onSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || '');
-    const redirectTo = `${origin}/auth/callback?redirect=${encodeURIComponent(nextPath)}`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const host = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+    const baseUrl = isLocal ? origin : (process.env.NEXT_PUBLIC_SITE_URL || origin);
+    const redirectTo = `${baseUrl}/auth/callback?redirect=${encodeURIComponent(nextPath)}`;
     const { error } = await supabaseRef.current!.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
     setLoading(false);
     if (error) setError(error.message);
@@ -62,8 +84,11 @@ function LoginContent() {
   const signInWith = (provider: 'google' | 'github') => async () => {
     setError(null);
     setLoading(true);
-    const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || '');
-    const redirectTo = `${origin}/auth/callback?redirect=${encodeURIComponent(nextPath)}`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const host = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+    const baseUrl = isLocal ? origin : (process.env.NEXT_PUBLIC_SITE_URL || origin);
+    const redirectTo = `${baseUrl}/auth/callback?redirect=${encodeURIComponent(nextPath)}`;
     const { error } = await supabaseRef.current!.auth.signInWithOAuth({ provider, options: { redirectTo } });
     setLoading(false);
     if (error) setError(error.message);

@@ -37,7 +37,8 @@ export default function TicketDetailPanel({ parent, subtasks = [], onClose, onSa
 	const [addingSub, setAddingSub] = useState<boolean>(false);
 	const [newSubTitle, setNewSubTitle] = useState<string>('');
 	const [newSubDue, setNewSubDue] = useState<string>('');
-	const [newSubEstimate, setNewSubEstimate] = useState<string>('');
+	// removed: estimate input state
+	// const [newSubEstimate, setNewSubEstimate] = useState<string>('');
 
 	const [addingTodo, setAddingTodo] = useState<Record<number, boolean>>({});
 	const [newTodoTitle, setNewTodoTitle] = useState<Record<number, string>>({});
@@ -62,7 +63,7 @@ export default function TicketDetailPanel({ parent, subtasks = [], onClose, onSa
 		setAddingSub(false);
 		setNewSubTitle('');
 		setNewSubDue('');
-		setNewSubEstimate('');
+		// removed: setNewSubEstimate('');
 		setAddingTodo({});
 		setNewTodoTitle({});
 		setNewTodoEstimate({});
@@ -92,7 +93,7 @@ export default function TicketDetailPanel({ parent, subtasks = [], onClose, onSa
 				{dirty && (
 					<>
 						<button onClick={() => { const title = titleRef.current?.innerText ?? editableTitle; const desc = descRef.current?.innerText ?? editableDesc; onSave?.({ title, description: desc || undefined, due: editableDue || undefined, subs }); setDirty(false); }} className="px-3 py-1.5 text-[12px] rounded bg-[#00b393] text-white">Save</button>
-						<button onClick={() => { if (titleRef.current) titleRef.current.innerText = parent.title || ''; if (descRef.current) descRef.current.innerText = parent.description || ''; setEditableTitle(parent.title || ''); setEditableDesc(parent.description || ''); setEditableDue(parent.due || ''); setSubs((subtasks || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) }))); setDirty(false); setAddingSub(false); setNewSubTitle(''); setNewSubDue(''); setNewSubEstimate(''); setAddingTodo({}); setNewTodoTitle({}); setNewTodoEstimate({}); }} className="px-3 py-1.5 text-[12px] rounded border border-neutral-300 text-neutral-700 bg-white">Cancel</button>
+						<button onClick={() => { if (titleRef.current) titleRef.current.innerText = parent.title || ''; if (descRef.current) descRef.current.innerText = parent.description || ''; setEditableTitle(parent.title || ''); setEditableDesc(parent.description || ''); setEditableDue(parent.due || ''); setSubs((subtasks || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) }))); setDirty(false); setAddingSub(false); setNewSubTitle(''); setNewSubDue(''); /* removed setNewSubEstimate(''); */ setAddingTodo({}); setNewTodoTitle({}); setNewTodoEstimate({}); }} className="px-3 py-1.5 text-[12px] rounded border border-neutral-300 text-neutral-700 bg-white">Cancel</button>
 					</>
 				)}
 				<button onClick={onToggleFullscreen} className="h-7 w-7 inline-flex items-center justify-center rounded hover:bg-neutral-50 text-neutral-600" aria-label="Toggle fullscreen">
@@ -209,11 +210,8 @@ export default function TicketDetailPanel({ parent, subtasks = [], onClose, onSa
 									<input value={newSubTitle} onChange={(e) => { setNewSubTitle(e.target.value); setDirty(true); }} placeholder="Sub ticket title" className="flex-1 min-w-0 border border-neutral-300 rounded px-2 py-1 text-[12px]" />
 									<div className="flex items-center gap-2">
 										<input type="date" value={newSubDue} onChange={(e) => { setNewSubDue(e.target.value); setDirty(true); }} className="border border-neutral-300 rounded px-2 py-1 text-[12px] w-[150px]" />
-										<div className="flex items-center">
-											<input type="number" min={0} step={0.5} value={newSubEstimate} onChange={(e) => { setNewSubEstimate(e.target.value); setDirty(true); }} className="w-12 focus:w-16 transition-all border border-neutral-300 rounded px-1.5 py-[2px] text-[11px] text-right" />
-											<span className="ml-1 text-[11px] text-neutral-500">h</span>
-										</div>
-										<button onClick={() => { setAddingSub(false); setNewSubTitle(''); setNewSubDue(''); setNewSubEstimate(''); }} className="px-2 py-1 text-[12px] rounded border border-neutral-300 text-neutral-700">Cancel</button>
+										{/* removed estimate input */}
+										<button onClick={() => { setAddingSub(false); setNewSubTitle(''); setNewSubDue(''); /* removed setNewSubEstimate(''); */ }} className="px-2 py-1 text-[12px] rounded border border-neutral-300 text-neutral-700">Cancel</button>
 										<button onClick={createSub} className="px-2 py-1 text-[12px] rounded bg-[#00b393] text-white">Add</button>
 									</div>
 								</div>
@@ -320,7 +318,7 @@ export default function TicketDetailPanel({ parent, subtasks = [], onClose, onSa
 				due: newSubDue || undefined,
 				done: false,
 				description: '',
-				estimateHours: newSubEstimate ? Number(newSubEstimate) : undefined,
+				// removed: estimateHours on creation
 				todos: [],
 			},
 		]);
@@ -328,7 +326,7 @@ export default function TicketDetailPanel({ parent, subtasks = [], onClose, onSa
 		setAddingSub(false);
 		setNewSubTitle('');
 		setNewSubDue('');
-		setNewSubEstimate('');
+		// removed: setNewSubEstimate('');
 		setDirty(true);
 	}
 
