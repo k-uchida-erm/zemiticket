@@ -1,13 +1,14 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "../../../lib/supabase/client";
+import { getBrowserSupabase } from "../../../lib/supabase/client";
 
 function LoginContent() {
   const router = useRouter();
   const params = useSearchParams();
   const nextPath = useMemo(() => params.get('redirect') || '/', [params]);
+  const supabaseRef = useRef<ReturnType<typeof getBrowserSupabase> | null>(null);
 
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -15,35 +16,36 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
-  // If returned with hash tokens (implicit flow), set session then redirect
   useEffect(() => {
-    const hash = typeof window !== 'undefined' ? window.location.hash : '';
-    if (!hash || !hash.includes('access_token')) return;
-    const query = new URLSearchParams(hash.replace(/^#/, ''));
-    const access_token = query.get('access_token');
-    const refresh_token = query.get('refresh_token');
-    if (access_token && refresh_token) {
-      (async () => {
-        const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-        if (error) {
-          setError(error.message);
-          return;
-        }
-        // Sync cookies on server for middleware/SSR
-        await fetch('/api/auth/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_token, refresh_token })
-        });
-        const dest = nextPath || '/';
-        router.replace(dest);
-      })();
-    }
-  }, [nextPath, router]);
+    // Initialize browser client and handle potential redirect hash
+    supabaseRef.current = getBrowserSupabase();
 
-  useEffect(() => {
-    supabase.auth.getUser().then((res: { data: { user: { email?: string } | null } }) => setUserEmail(res.data.user?.email ?? null));
-  }, []);
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    if (hash && hash.includes('access_token')) {
+      const query = new URLSearchParams(hash.replace(/^#/, ''));
+      const access_token = query.get('access_token');
+      const refresh_token = query.get('refresh_token');
+      if (access_token && refresh_token) {
+        (async () => {
+          const { error } = await supabaseRef.current!.auth.setSession({ access_token, refresh_token });
+          if (error) {
+            setError(error.message);
+            return;
+          }
+          await fetch('/api/auth/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token, refresh_token })
+          });
+          const dest = nextPath || '/';
+          router.replace(dest);
+        })();
+      }
+    }
+
+    // Fetch current user email if signed in
+    supabaseRef.current.auth.getUser().then((res: { data: { user: { email?: string } | null } }) => setUserEmail(res.data.user?.email ?? null));
+  }, [nextPath, router]);
 
   const onSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +53,7 @@ function LoginContent() {
     setLoading(true);
     const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || '');
     const redirectTo = `${origin}/auth/callback?redirect=${encodeURIComponent(nextPath)}`;
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+    const { error } = await supabaseRef.current!.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
     setLoading(false);
     if (error) setError(error.message);
     else setSent(true);
@@ -62,13 +64,13 @@ function LoginContent() {
     setLoading(true);
     const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || '');
     const redirectTo = `${origin}/auth/callback?redirect=${encodeURIComponent(nextPath)}`;
-    const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
+    const { error } = await supabaseRef.current!.auth.signInWithOAuth({ provider, options: { redirectTo } });
     setLoading(false);
     if (error) setError(error.message);
   };
 
   const onSignOut = async () => {
-    await supabase.auth.signOut();
+    await supabaseRef.current!.auth.signOut();
     setUserEmail(null);
   };
 

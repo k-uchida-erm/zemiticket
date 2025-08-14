@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase/client";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getBrowserSupabase } from "../../lib/supabase/client";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -9,9 +9,11 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const supabaseRef = useRef<ReturnType<typeof getBrowserSupabase> | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then((res: { data: { user: { email?: string } | null } }) => setUserEmail(res.data.user?.email ?? null));
+    supabaseRef.current = getBrowserSupabase();
+    supabaseRef.current.auth.getUser().then((res: { data: { user: { email?: string } | null } }) => setUserEmail(res.data.user?.email ?? null));
   }, []);
 
   const onSubmit = useCallback(async (e: React.FormEvent) => {
@@ -20,7 +22,7 @@ export default function SignInPage() {
     setLoading(true);
     const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || '');
     const redirectTo = `${origin}/auth/callback`;
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+    const { error } = await supabaseRef.current!.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
     setLoading(false);
     if (error) setError(error.message);
     else setSent(true);
@@ -31,13 +33,13 @@ export default function SignInPage() {
     setLoading(true);
     const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || '');
     const redirectTo = `${origin}/auth/callback`;
-    const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
+    const { error } = await supabaseRef.current!.auth.signInWithOAuth({ provider, options: { redirectTo } });
     setLoading(false);
     if (error) setError(error.message);
   };
 
   const onSignOut = async () => {
-    await supabase.auth.signOut();
+    await supabaseRef.current!.auth.signOut();
     setUserEmail(null);
   };
 

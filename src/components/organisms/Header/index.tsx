@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import IconUser from "../../atoms/icons/User";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { supabase } from "../../../lib/supabase/client";
+import { getBrowserSupabase } from "../../../lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 export default function Header() {
@@ -12,6 +12,12 @@ export default function Header() {
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
+  const supabaseRef = useRef<ReturnType<typeof getBrowserSupabase> | null>(null);
+
+  useEffect(() => {
+    // Initialize only on client
+    supabaseRef.current = getBrowserSupabase();
+  }, []);
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -32,7 +38,7 @@ export default function Header() {
   }, [open]);
 
   const onLogout = useCallback(async () => {
-    await supabase.auth.signOut();
+    await supabaseRef.current?.auth.signOut();
     setOpen(false);
     router.replace('/auth/login');
   }, [router]);
