@@ -37,7 +37,7 @@ export function useTicketDetailAPI() {
 	async function toggleTodo(
 		subs: SubTaskWithLocal[],
 		subIdx: number,
-		todoId: number,
+		todoId: string,
 		setSubs: React.Dispatch<React.SetStateAction<SubTaskWithLocal[]>>,
 		setDirty: (dirty: boolean) => void
 	) {
@@ -91,12 +91,12 @@ export function useTicketDetailAPI() {
 
 	async function saveEditingSub(
 		subs: SubTaskWithLocal[],
-		subtaskId: number,
-		editingSubTitle: Record<number, string>,
-		editingTodoTitles: Record<string, string>,
-		editingTodoEstimates: Record<string, string>,
+		subtaskId: string,
+		editingSubTitle: Record<string, string>,
+		editingTodoTitles: Record<string, Record<string, string>>,
+		editingTodoEstimates: Record<string, Record<string, string>>,
 		setSubs: React.Dispatch<React.SetStateAction<SubTaskWithLocal[]>>,
-		setEditingSub: React.Dispatch<React.SetStateAction<Record<number, boolean>>>,
+		setEditingSub: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
 		setDirty: (dirty: boolean) => void
 	) {
 		const subIdx = subs.findIndex(s => s.id === subtaskId);
@@ -119,8 +119,8 @@ export function useTicketDetailAPI() {
 			// Update todos
 			if (subtask.todos) {
 				const updatePromises = subtask.todos.map(async (todo) => {
-					const newTodoTitle = editingTodoTitles[`${subtaskId}-${todo.id}`];
-					const newEstimate = editingTodoEstimates[`${subtaskId}-${todo.id}`];
+					const newTodoTitle = editingTodoTitles[subtaskId]?.[todo.id];
+					const newEstimate = editingTodoEstimates[subtaskId]?.[todo.id];
 					
 					const hasChanges = 
 						(newTodoTitle && newTodoTitle !== todo.title) ||
@@ -151,9 +151,9 @@ export function useTicketDetailAPI() {
 						title: newTitle || s.title,
 						todos: (s.todos || []).map(todo => ({
 							...todo,
-							title: editingTodoTitles[`${subtaskId}-${todo.id}`] || todo.title,
-							estimateHours: editingTodoEstimates[`${subtaskId}-${todo.id}`] !== undefined 
-								? (editingTodoEstimates[`${subtaskId}-${todo.id}`] === '' ? 0 : Number(editingTodoEstimates[`${subtaskId}-${todo.id}`]))
+							title: editingTodoTitles[subtaskId]?.[todo.id] || todo.title,
+							estimateHours: editingTodoEstimates[subtaskId]?.[todo.id] !== undefined 
+								? (editingTodoEstimates[subtaskId]?.[todo.id] === '' ? 0 : Number(editingTodoEstimates[subtaskId]?.[todo.id]))
 								: todo.estimateHours
 						}))
 					};
@@ -172,7 +172,7 @@ export function useTicketDetailAPI() {
 	async function deleteTodo(
 		subs: SubTaskWithLocal[],
 		subIdx: number,
-		todoId: number,
+		todoId: string,
 		setSubs: React.Dispatch<React.SetStateAction<SubTaskWithLocal[]>>,
 		setDirty: (dirty: boolean) => void
 	) {
@@ -182,9 +182,16 @@ export function useTicketDetailAPI() {
 			});
 			if (!response.ok) throw new Error('Failed to delete todo');
 			
-			setSubs(prev => prev.map((s, i) => 
-				i === subIdx ? { ...s, todos: (s.todos || []).filter(t => t.id !== todoId) } : s
-			));
+			// 楽観的更新: 先にUIを更新
+			setSubs((prev: SubTaskWithLocal[]) =>
+				prev.map((s: SubTaskWithLocal, i: number) => {
+					if (i !== subIdx) return s;
+					return {
+						...s,
+						todos: (s.todos || []).filter((t: SubTodo) => t.id !== todoId),
+					};
+				})
+			);
 			setDirty(true);
 		} catch (error) {
 			console.error('Error deleting todo:', error);
@@ -195,12 +202,12 @@ export function useTicketDetailAPI() {
 	async function addTodo(
 		subs: SubTaskWithLocal[],
 		subIdx: number,
-		newTodoTitle: Record<number, string>,
-		newTodoEstimate: Record<number, string>,
+		newTodoTitle: Record<string, string>,
+		newTodoEstimate: Record<string, string>,
 		setSubs: React.Dispatch<React.SetStateAction<SubTaskWithLocal[]>>,
-		setAddingTodo: React.Dispatch<React.SetStateAction<Record<number, boolean>>>,
-		setNewTodoTitle: React.Dispatch<React.SetStateAction<Record<number, string>>>,
-		setNewTodoEstimate: React.Dispatch<React.SetStateAction<Record<number, string>>>,
+		setAddingTodo: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
+		setNewTodoTitle: React.Dispatch<React.SetStateAction<Record<string, string>>>,
+		setNewTodoEstimate: React.Dispatch<React.SetStateAction<Record<string, string>>>,
 		setDirty: (dirty: boolean) => void
 	) {
 		const subtask = subs[subIdx];
@@ -252,7 +259,7 @@ export function useTicketDetailAPI() {
 		newSubTitle: string,
 		newSubDue: string,
 		setSubs: React.Dispatch<React.SetStateAction<SubTaskWithLocal[]>>,
-		setOpenTodos: React.Dispatch<React.SetStateAction<Record<number, boolean>>>,
+		setOpenTodos: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
 		setAddingSub: (addingSub: boolean) => void,
 		setNewSubTitle: (newSubTitle: string) => void,
 		setNewSubDue: (newSubDue: string) => void,

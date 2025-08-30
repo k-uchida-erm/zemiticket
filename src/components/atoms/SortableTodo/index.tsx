@@ -7,14 +7,14 @@ import StatusDot from '../StatusDot';
 
 interface SortableTodoProps {
 	todo: SubTodo;
-	subtaskId: number;
+	subtaskId: string;
 	isEditing: boolean;
 	editingTitle: string;
 	editingEstimate: string;
-	onToggle: (subtaskId: number, todoId: number) => void;
-	onTitleChange: (subtaskId: number, todoId: number, title: string) => void;
-	onEstimateChange: (subtaskId: number, todoId: number, estimate: string) => void;
-	onDelete: (subtaskId: number, todoId: number) => void;
+	onToggle: (subtaskId: string, todoId: string) => void;
+	onTitleChange: (subtaskId: string, todoId: string, title: string) => void;
+	onEstimateChange: (subtaskId: string, todoId: string, estimate: string) => void;
+	onDelete: (subtaskId: string, todoId: string) => void;
 }
 
 export default function SortableTodo({

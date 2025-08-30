@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+interface RouteParams {
+	params: Promise<{ id: string }>;
+}
+
 export async function GET(
 	request: NextRequest,
-	{ params }: { params: { id: string } }
+	{ params }: RouteParams
 ) {
 	try {
 		// 環境変数を確認
@@ -17,12 +21,13 @@ export async function GET(
 			process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 		);
 
-		console.log('Fetching progress for parent task:', params.id);
+		const resolvedParams = await params;
+		console.log('Fetching progress for parent task:', resolvedParams.id);
 
 		const { data, error } = await supabase
 			.from('parent_tasks')
 			.select('progress_percentage')
-			.eq('id', params.id)
+			.eq('id', resolvedParams.id)
 			.single();
 
 		if (error) {

@@ -44,8 +44,6 @@ export default function SubTicketCard({ ticket, compact = true, variant = 'card'
     if (todos.length > 0) {
       // サブタスク内の全todosが完了しているかチェック
       const allTodosDone = todos.every(todo => todo.done === true);
-      console.log('allTodosDone:', allTodosDone, 'current done:', done);
-      console.log('Setting done to:', allTodosDone);
       setDone(allTodosDone);
     }
   }, [todos]);
@@ -62,7 +60,7 @@ export default function SubTicketCard({ ticket, compact = true, variant = 'card'
     setDone((v) => !v);
   };
 
-  const onToggleTodo = (id: number) => async (e: React.MouseEvent) => {
+  const onToggleTodo = (id: string) => async (e: React.MouseEvent) => {
     if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();

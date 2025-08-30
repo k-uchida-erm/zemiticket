@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import IconChevronDown from '../../../atoms/icons/ChevronDown';
 import TodoItem from '../TodoItem';
+import type { SubTask, SubTodo } from '../../../../types';
 
 interface KanbanSubtaskProps {
-	subtask: any;
+	subtask: SubTask;
 	status: 'todo' | 'active' | 'completed';
 	expanded: boolean;
 	isManuallyUpdated: boolean;
@@ -45,7 +46,7 @@ export default function KanbanSubtask({
 	useEffect(() => {
 		if (isManuallyUpdated || !onSubtaskStatusUpdate || !subtask.todos || subtask.todos.length === 0) return;
 
-		const completedCount = subtask.todos.filter((todo: any) => todo.done).length;
+		const completedCount = subtask.todos.filter((todo: SubTodo) => todo.done).length;
 		const totalCount = subtask.todos.length;
 		
 		let newStatus: 'todo' | 'active' | 'completed';
@@ -94,7 +95,7 @@ export default function KanbanSubtask({
 			{expanded && (
 				<div className="mt-2 pl-3 space-y-1">
 					{Array.isArray(subtask.todos) && subtask.todos.length > 0 ? (
-						subtask.todos.map((todo: any) => (
+						subtask.todos.map((todo: SubTodo) => (
 							<TodoItem 
 								key={todo.id} 
 								todo={todo} 

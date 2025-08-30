@@ -28,19 +28,19 @@ interface Comment {
 
 interface SortableTodosContainerProps {
 	todos: SubTodo[];
-	subtaskId: number;
+	subtaskId: string;
 	isEditing: boolean;
-	editingTodoTitles: Record<number, string>;
-	editingTodoEstimates: Record<number, string>;
-	onToggle: (subtaskId: number, todoId: number) => void;
-	onTitleChange: (subtaskId: number, todoId: number, title: string) => void;
-	onEstimateChange: (subtaskId: number, todoId: number, estimate: string) => void;
-	onDelete: (subtaskId: number, todoId: number) => void;
-	onReorderTodos: (subtaskId: number, newOrder: SubTodo[]) => void;
+	editingTodoTitles: Record<string, string>;
+	editingTodoEstimates: Record<string, string>;
+	onToggle: (subtaskId: string, todoId: string) => void;
+	onTitleChange: (subtaskId: string, todoId: string, title: string) => void;
+	onEstimateChange: (subtaskId: string, todoId: string, estimate: string) => void;
+	onDelete: (subtaskId: string, todoId: string) => void;
+	onReorderTodos: (subtaskId: string, newOrder: SubTodo[]) => void;
 	// コメント関連のprops
-	todoComments?: Record<number, Comment[]>;
-	onAddTodoComment?: (subtaskId: number, todoId: number, text: string) => void;
-	onDeleteTodoComment?: (subtaskId: number, todoId: number, commentId: string) => void;
+	todoComments?: Record<string, Comment[]>;
+	onAddTodoComment?: (subtaskId: string, todoId: string, text: string) => void;
+	onDeleteTodoComment?: (subtaskId: string, todoId: string, commentId: string) => void;
 }
 
 export default function SortableTodosContainer({

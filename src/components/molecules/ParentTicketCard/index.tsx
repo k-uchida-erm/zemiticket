@@ -43,19 +43,34 @@ function calcProgress(list: SubTask[]): number {
 	let totalTodos = 0;
 	let completedTodos = 0;
 	
-	list.forEach(subtask => {
-		if (subtask.todos && Array.isArray(subtask.todos)) {
-			subtask.todos.forEach(todo => {
+	console.log('calcProgress called with list:', list);
+	
+	list.forEach((subtask, index) => {
+		console.log(`Subtask ${index}:`, subtask);
+		console.log(`  Subtask ${index} todos property:`, subtask.todos);
+		console.log(`  Subtask ${index} todos type:`, typeof subtask.todos);
+		console.log(`  Subtask ${index} todos isArray:`, Array.isArray(subtask.todos));
+		
+		if (subtask.todos && Array.isArray(subtask.todos) && subtask.todos.length > 0) {
+			console.log(`  Subtask ${index} todos:`, subtask.todos);
+			subtask.todos.forEach((todo, todoIndex) => {
 				totalTodos++;
+				console.log(`    Todo ${todoIndex}: done=${todo.done}, title=${todo.title}`);
 				if (todo.done) {
 					completedTodos++;
 				}
 			});
+		} else {
+			console.log(`  Subtask ${index} has no todos or todos is not an array or empty:`, subtask.todos);
 		}
 	});
 	
+	console.log(`Total todos: ${totalTodos}, Completed todos: ${completedTodos}`);
+	
 	if (totalTodos === 0) return 0;
-	return Math.round((completedTodos / totalTodos) * 100);
+	const progress = Math.round((completedTodos / totalTodos) * 100);
+	console.log(`Calculated progress: ${progress}%`);
+	return progress;
 }
 
 function isAllSubtasksCompleted(list: SubTask[]): boolean {
@@ -78,7 +93,15 @@ function formatDue(due?: string): string {
 
 export default function ParentTicketCard({ parent, subtasks, children, expanded = true, onToggle, onToggleTodo, size = 'md', renderSubticketsInside = false, mood = 'normal', childrenReadOnly = false, hideProgress = false, hideDue = false, inlineBadge, hideEpic = false, hideIcon = false, disableLinks = false, customSubtasksContent }: ParentTicketCardProps) {
 	const subtasksList: SubTask[] = Array.isArray(subtasks) ? subtasks : (children || []);
-	const [currentProgress, setCurrentProgress] = useState(parent.progressPercentage ?? 0);
+	
+	console.log('ParentTicketCard render:', { parent, subtasks, children });
+	console.log('Parent progressPercentage:', parent.progressPercentage);
+	console.log('Subtasks list:', subtasksList);
+	
+	// 進捗の初期値を計算（データベースの値がない場合や0の場合は計算で求める）
+	const initialProgress = (parent.progressPercentage && parent.progressPercentage > 0) ? parent.progressPercentage : calcProgress(subtasksList);
+	console.log('Initial progress:', initialProgress);
+	const [currentProgress, setCurrentProgress] = useState(initialProgress);
 	const computedProgress = currentProgress;
 	
 	const router = useRouter();

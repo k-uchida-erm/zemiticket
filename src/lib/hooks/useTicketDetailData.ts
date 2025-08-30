@@ -46,10 +46,7 @@ export function useTicketDetailData(params: UseTicketDetailDataParams) {
 		setNewTodoEstimate({});
 		setDirty(false);
 	}, [
-		parent.id, 
-		parent.title, 
-		parent.description, 
-		(parent as { due?: string }).due, 
+		parent, 
 		subtasks,
 		titleRef,
 		descRef,

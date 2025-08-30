@@ -27,7 +27,7 @@ export function useTicketDetailReorder() {
 	}
 
 	async function reorderTodos(
-		subtaskId: number,
+		subtaskId: string,
 		newOrder: SubTodo[],
 		subtasks: SubTask[],
 		setSubs: React.Dispatch<React.SetStateAction<SubTaskWithLocal[]>>

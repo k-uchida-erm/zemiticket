@@ -3,20 +3,21 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import TicketDetailPanel from '../../../components/organisms/TicketDetailPanel';
+import type { ParentTask, SubTask } from '../../../types';
 
 interface TicketData {
 	epic: string;
 	list: Array<{
-		parent: any;
-		children: any[];
+		parent: ParentTask;
+		children: SubTask[];
 	}>;
 }
 
 export default function TicketDetailPage() {
 	const params = useParams();
 	const router = useRouter();
-	const [ticket, setTicket] = useState<any>(null);
-	const [subtasks, setSubtasks] = useState<any[]>([]);
+	const [ticket, setTicket] = useState<ParentTask | null>(null);
+	const [subtasks, setSubtasks] = useState<SubTask[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -39,8 +40,8 @@ export default function TicketDetailPage() {
 
 				// slugからチケットを検索
 				const allTickets: TicketData[] = result.data;
-				let foundTicket: any = null;
-				let foundSubtasks: any[] = [];
+				let foundTicket: ParentTask | null = null;
+				let foundSubtasks: SubTask[] = [];
 
 				for (const epicGroup of allTickets) {
 					for (const ticketItem of epicGroup.list) {

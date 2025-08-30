@@ -5,7 +5,7 @@ import IconList from '../../atoms/icons/List';
 import EmptyState from '../../atoms/EmptyState';
 import ScrollableContainer from '../../atoms/ScrollableContainer';
 import TicketListContainer from '../../molecules/TicketListContainer';
-import type { ParentTask, SubTask } from '../../types';
+import type { ParentTask, SubTask } from '../../../types';
 
 interface TicketGroup {
 	epic: string;

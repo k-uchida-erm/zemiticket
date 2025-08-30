@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 export async function middleware() {
   // 認証を一時的に無効化 - 開発環境用

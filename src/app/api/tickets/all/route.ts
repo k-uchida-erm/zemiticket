@@ -1,8 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '../../../../lib/supabase/server';
 import { transformTaskData } from '../../../../lib/utils/timeCalculations';
+import type { ParentTask, SubTask } from '../../../../types';
 
-export async function GET(request: NextRequest) {
+// Supabaseから返されるデータの型定義
+interface SupabaseParentTask {
+	id: string;
+	title: string;
+	user: string;
+	description?: string;
+	slug?: string;
+	status?: string;
+	priority?: string;
+	epics?: { name?: string };
+	sub_tasks?: Array<{
+		id: string;
+		title: string;
+		user: string;
+		description?: string;
+		status?: string;
+		todos?: Array<{
+			id: string;
+			title: string;
+			done?: boolean;
+			estimate_hours?: number;
+			sort_order?: number;
+		}>;
+		sort_order?: number;
+		[key: string]: unknown;
+	}>;
+	[key: string]: unknown; // その他のフィールド
+}
+
+export async function GET() {
 	try {
 		// 環境変数の確認
 		if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -46,16 +76,16 @@ export async function GET(request: NextRequest) {
 		}
 
 		// エピックごとにグループ化
-		const groupedByEpic = new Map<string, any[]>();
+		const groupedByEpic = new Map<string, Array<{ parent: ParentTask; children: SubTask[] }>>();
 		
-		parentTasks.forEach((parentTask) => {
+		parentTasks.forEach((parentTask: SupabaseParentTask) => {
 			const epicName = parentTask.epics?.name || '未分類';
 			if (!groupedByEpic.has(epicName)) {
 				groupedByEpic.set(epicName, []);
 			}
 			
 			// 共通関数でデータ変換（時間計算込み）
-			const formattedParent = transformTaskData(parentTask);
+			const formattedParent = transformTaskData(parentTask as ParentTask);
 			
 			// チケットページ用の形式に変換
 			const ticketPageFormat = {

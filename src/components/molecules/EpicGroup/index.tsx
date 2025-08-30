@@ -1,15 +1,16 @@
 "use client";
 
-import EpicHeader from '../EpicHeader';
+import EpicHeader from '../EpicHeader/index';
 import AllTicketParentCard from '../AllTicketParentCard';
+import type { ParentTask, SubTask } from '../../../types';
 
 interface EpicGroupProps {
 	epic: string;
 	list: Array<{
-		parent: any;
-		children: any[];
+		parent: ParentTask;
+		children: SubTask[];
 	}>;
-	onSelect: (ticket: any) => void;
+	onSelect: (ticket: ParentTask) => void;
 	onCreateEpic: (epic: string) => void;
 	selectedTicketSlug?: string;
 }

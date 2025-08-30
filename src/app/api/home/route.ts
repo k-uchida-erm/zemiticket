@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '../../../lib/supabase/server';
 import { transformTaskData } from '../../../lib/utils/timeCalculations';
-import type { ParentTask, SubTask } from '../../../types';
+import type { ParentTask } from '../../../types';
 
 // Supabaseから取得するデータの型定義
 interface SupabaseParentTask {
@@ -26,6 +26,7 @@ interface SupabaseSubTask {
 	id: string;
 	title: string;
 	description?: string;
+	slug?: string;
 	status?: string;
 	priority?: string;
 	due_date?: string;
@@ -44,7 +45,43 @@ interface SupabaseTodo {
 	sort_order?: number;
 }
 
-export async function GET(request: NextRequest) {
+// SupabaseデータをParentTask型に変換する関数
+function convertToParentTask(supabaseTask: SupabaseParentTask): ParentTask {
+	return {
+		id: supabaseTask.id,
+		title: supabaseTask.title,
+		user: supabaseTask.users.name,
+		description: supabaseTask.description,
+		slug: supabaseTask.slug,
+		status: (supabaseTask.status as 'todo' | 'in_progress' | 'review' | 'done') || 'todo',
+		priority: (supabaseTask.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium',
+		due: supabaseTask.due_date,
+		progressPercentage: supabaseTask.progress_percentage || 0,
+		sort_order: supabaseTask.sort_order,
+		is_active: supabaseTask.is_active,
+		sub_tasks: supabaseTask.sub_tasks.map(subTask => ({
+			id: subTask.id,
+			title: subTask.title,
+			user: subTask.users.name,
+			description: subTask.description,
+			slug: subTask.slug,
+			status: (subTask.status as 'todo' | 'in_progress' | 'review' | 'done') || 'todo',
+			priority: (subTask.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium',
+			due: subTask.due_date,
+			done: subTask.done,
+			sort_order: subTask.sort_order,
+			todos: subTask.todos.map(todo => ({
+				id: todo.id,
+				title: todo.title,
+				done: todo.done,
+				estimateHours: todo.estimate_hours,
+				sort_order: todo.sort_order
+			}))
+		}))
+	};
+}
+
+export async function GET() {
   try {
     // 環境変数の確認
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -131,42 +168,24 @@ export async function GET(request: NextRequest) {
 
     // 共通関数でデータ変換（時間計算込み）
     const transformedActiveGroups = (activeGroups as SupabaseParentTask[])?.map((group: SupabaseParentTask) => {
-      const transformed = transformTaskData({
-        ...group,
-        user: group.users.name,
-        sub_tasks: group.sub_tasks.map(subTask => ({
-          ...subTask,
-          user: subTask.users.name
-        }))
-      });
+      const parentTask = convertToParentTask(group);
+      const transformed = transformTaskData(parentTask);
       return transformed;
     }) || [];
 
     // 提出中のチケットは UI が (ParentTask & { children?: SubTask[] })[] を期待するため、
     // transformTaskData の結果から { ...parent, children } に正規化する
     const transformedSubmittingTickets = (submittingTickets as SupabaseParentTask[])?.map((ticket: SupabaseParentTask) => {
-      const t = transformTaskData({
-        ...ticket,
-        user: ticket.users.name,
-        sub_tasks: ticket.sub_tasks.map(subTask => ({
-          ...subTask,
-          user: subTask.users.name
-        }))
-      });
+      const parentTask = convertToParentTask(ticket);
+      const t = transformTaskData(parentTask);
       return { ...t.parent, children: t.children };
     }) || [];
 
     // Others 用も同様にチケット配列を { ...parent, children } 形式で返す
     // （ユーザー単位でグルーピングする必要があれば、ここで groupBy 可能）
     const transformedOthersActive = (othersActiveParents as SupabaseParentTask[])?.map((ticket: SupabaseParentTask) => {
-      const t = transformTaskData({
-        ...ticket,
-        user: ticket.users.name,
-        sub_tasks: ticket.sub_tasks.map(subTask => ({
-          ...subTask,
-          user: subTask.users.name
-        }))
-      });
+      const parentTask = convertToParentTask(ticket);
+      const t = transformTaskData(parentTask);
       return {
         user: t.parent.user,
         tickets: [{ ...t.parent, children: t.children }]
@@ -184,12 +203,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 
- 
- 
- 
- 
- 
- 
- 
- 
  

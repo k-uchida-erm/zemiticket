@@ -20,8 +20,8 @@ export function useTicketDetailState(parent: ParentTask, subtasks: SubTask[]) {
 	);
 
 	// UI state
-	const [openTodos, setOpenTodos] = useState<Record<number, boolean>>(() => {
-		const map: Record<number, boolean> = {};
+	const [openTodos, setOpenTodos] = useState<Record<string, boolean>>(() => {
+		const map: Record<string, boolean> = {};
 		for (const s of subtasks || []) map[s.id] = true;
 		return map;
 	});
@@ -31,15 +31,15 @@ export function useTicketDetailState(parent: ParentTask, subtasks: SubTask[]) {
 	const [newSubTitle, setNewSubTitle] = useState<string>('');
 	const [newSubDue, setNewSubDue] = useState<string>('');
 
-	const [addingTodo, setAddingTodo] = useState<Record<number, boolean>>({});
-	const [newTodoTitle, setNewTodoTitle] = useState<Record<number, string>>({});
-	const [newTodoEstimate, setNewTodoEstimate] = useState<Record<number, string>>({});
+	const [addingTodo, setAddingTodo] = useState<Record<string, boolean>>({});
+	const [newTodoTitle, setNewTodoTitle] = useState<Record<string, string>>({});
+	const [newTodoEstimate, setNewTodoEstimate] = useState<Record<string, string>>({});
 
 	// Editing states
-	const [editingSub, setEditingSub] = useState<Record<number, boolean>>({});
-	const [editingSubTitle, setEditingSubTitle] = useState<Record<number, string>>({});
-	const [editingTodoTitles, setEditingTodoTitles] = useState<Record<string, string>>({});
-	const [editingTodoEstimates, setEditingTodoEstimates] = useState<Record<string, string>>({});
+	const [editingSub, setEditingSub] = useState<Record<string, boolean>>({});
+	const [editingSubTitle, setEditingSubTitle] = useState<Record<string, string>>({});
+	const [editingTodoTitles, setEditingTodoTitles] = useState<Record<string, Record<string, string>>>({});
+	const [editingTodoEstimates, setEditingTodoEstimates] = useState<Record<string, Record<string, string>>>({});
 
 	// Initialize/reset when parent changes
 	useEffect(() => {
@@ -48,7 +48,7 @@ export function useTicketDetailState(parent: ParentTask, subtasks: SubTask[]) {
 		setEditableDue(parent.due || '');
 		setSubs((subtasks || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) })));
 		setOpenTodos(() => {
-			const map: Record<number, boolean> = {};
+			const map: Record<string, boolean> = {};
 			for (const s of subtasks || []) map[s.id] = true;
 			return map;
 		});

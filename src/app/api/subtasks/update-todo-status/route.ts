@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest) {
 		// 3. 必要に応じてサブチケットのstatusを自動更新
 		// ただし、手動でのドラッグ&ドロップによる変更は妨げない
 		if (todos && todos.length > 0) {
-			const completedCount = todos.filter((todo: any) => todo.done).length;
+			const completedCount = todos.filter((todo: { done: boolean }) => todo.done).length;
 			const totalCount = todos.length;
 			
 			let newStatus: 'todo' | 'active' | 'completed';
@@ -58,14 +58,10 @@ export async function PUT(request: NextRequest) {
 
 			// サブチケットのstatusを更新（自動更新）
 			// 手動更新との競合を避けるため、必要最小限の更新のみ
-			const { error: subtaskUpdateError } = await supabase
+			await supabase
 				.from('sub_tasks')
 				.update({ status: newStatus })
 				.eq('id', subtaskId);
-
-			if (subtaskUpdateError) {
-				// 自動更新が失敗しても、todoの更新は成功しているので、エラーは返さない
-			}
 		}
 
 		return NextResponse.json({ success: true });

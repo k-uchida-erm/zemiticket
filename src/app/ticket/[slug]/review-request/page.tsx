@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ParentTask, SubTask } from '../../../../types';
+import type { ParentTask, SubTask } from '../../../../types';
 import Card from '../../../../components/atoms/Card';
 import SectionTitle from '../../../../components/atoms/SectionTitle';
 import IconTicket from '../../../../components/atoms/icons/Ticket';
@@ -10,6 +10,14 @@ import IconChevronLeft from '../../../../components/atoms/icons/ChevronLeft';
 import IconUsers from '../../../../components/atoms/icons/Users';
 import IconCalendar from '../../../../components/atoms/icons/Calendar';
 import IconCheck from '../../../../components/atoms/icons/Check';
+
+interface TicketGroup {
+	epic: string;
+	list: Array<{
+		parent: ParentTask;
+		children: SubTask[];
+	}>;
+}
 
 interface ReviewRequestData {
 	reviewers: string[];
@@ -45,8 +53,8 @@ export default function ReviewRequestPage() {
 					const result = await response.json();
 					console.log('API response:', result);
 					
-					if (result.data) {
-						console.log('Data structure:', result.data);
+					if (result.data && Array.isArray(result.data)) {
+						console.log('API response structure:', result.data);
 						
 						// 全エピックのリストからslugに基づいてチケットを検索
 						let foundTicket = null;
@@ -55,13 +63,13 @@ export default function ReviewRequestPage() {
 							console.log('Epic group list:', epicGroup.list);
 							
 							// 各リストアイテムの詳細構造を確認
-							epicGroup.list.forEach((item: any, index: number) => {
+							epicGroup.list.forEach((item: { parent: ParentTask; children: SubTask[] }, index: number) => {
 								console.log(`Item ${index} full structure:`, item);
 								console.log(`Item ${index} keys:`, Object.keys(item));
 								console.log(`Item ${index} parent:`, item.parent);
 							});
 							
-							const ticket = epicGroup.list.find((item: any) => {
+							const ticket = epicGroup.list.find((item: { parent: ParentTask; children: SubTask[] }) => {
 								console.log('Checking item:', item.parent?.title, 'slug:', item.parent?.slug, 'target slug:', slug);
 								return item.parent?.slug === slug;
 							});
@@ -79,8 +87,8 @@ export default function ReviewRequestPage() {
 							setSubtasks(foundTicket.children || []);
 						} else {
 							console.log('No ticket found for slug:', slug);
-							console.log('Available slugs:', result.data.flatMap((group: any) => 
-								group.list.map((item: any) => ({ title: item.parent?.title, slug: item.parent?.slug }))
+							console.log('Available slugs:', result.data.flatMap((group: TicketGroup) => 
+								group.list.map((item: { parent: ParentTask; children: SubTask[] }) => ({ title: item.parent?.title, slug: item.parent?.slug }))
 							));
 						}
 					}
@@ -197,7 +205,7 @@ export default function ReviewRequestPage() {
 									</label>
 									<select
 										value={formData.priority}
-										onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value as any }))}
+										onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value as 'low' | 'medium' | 'high' | 'urgent' }))}
 										className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00b393]/20 focus:border-[#00b393]"
 									>
 										<option value="low">Low</option>

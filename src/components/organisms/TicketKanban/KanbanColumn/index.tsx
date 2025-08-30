@@ -1,11 +1,11 @@
 "use client";
 
-import { ReactNode } from 'react';
 import KanbanSubtask from '../KanbanSubtask';
+import type { SubTask } from '../../../../types';
 
 interface KanbanColumnProps {
 	status: 'todo' | 'active' | 'completed';
-	subtasks: any[];
+	subtasks: SubTask[];
 	expandedSubtasks: Set<string | number>;
 	manuallyUpdatedSubtasks: Set<string | number>;
 	onToggleSubtask: (subtaskId: string | number) => void;

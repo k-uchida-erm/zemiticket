@@ -74,11 +74,11 @@ export default function TicketDetailPanel({
 	} = useTicketDetailState(parent, subtasks);
 
 	// コメント関連の状態
-	const [subtaskComments, setSubtaskComments] = useState<Record<number, Comment[]>>({});
-	const [todoComments, setTodoComments] = useState<Record<number, Comment[]>>({});
+	const [subtaskComments, setSubtaskComments] = useState<Record<string, Comment[]>>({});
+	const [todoComments, setTodoComments] = useState<Record<string, Comment[]>>({});
 
 	// コメント関連のハンドラー
-	const handleAddSubtaskComment = (subtaskId: number, text: string) => {
+	const handleAddSubtaskComment = (subtaskId: string, text: string) => {
 		const newComment: Comment = {
 			id: `comment-${Date.now()}`,
 			text,
@@ -92,7 +92,7 @@ export default function TicketDetailPanel({
 		}));
 	};
 
-	const handleDeleteSubtaskComment = (subtaskId: number, commentId: string) => {
+	const handleDeleteSubtaskComment = (subtaskId: string, commentId: string) => {
 		setSubtaskComments(prev => ({
 			...prev,
 			[subtaskId]: (prev[subtaskId] || []).filter(c => c.id !== commentId)
@@ -102,7 +102,7 @@ export default function TicketDetailPanel({
 	// 親チケット用のダーティーフラグ（タイトル/説明/期日の変更にのみ反応）
 	const [parentDirty, setParentDirty] = useState(false);
 
-	const handleAddTodoComment = (subtaskId: number, todoId: number, text: string) => {
+	const handleAddTodoComment = (subtaskId: string, todoId: string, text: string) => {
 		const newComment: Comment = {
 			id: `comment-${Date.now()}`,
 			text,
@@ -116,7 +116,7 @@ export default function TicketDetailPanel({
 		}));
 	};
 
-	const handleDeleteTodoComment = (subtaskId: number, todoId: number, commentId: string) => {
+	const handleDeleteTodoComment = (subtaskId: string, todoId: string, commentId: string) => {
 		setTodoComments(prev => ({
 			...prev,
 			[todoId]: (prev[todoId] || []).filter(c => c.id !== commentId)
@@ -230,8 +230,8 @@ export default function TicketDetailPanel({
 				parent={parent}
 				subtasks={subs}
 				openTodos={openTodos}
-				onToggleTodos={(subtaskId: number) => setOpenTodos((prev) => ({ ...prev, [subtaskId]: !prev[subtaskId] }))}
-				onToggleTodo={(subtaskId: number, todoId: number) => { 
+				onToggleTodos={(subtaskId: string) => setOpenTodos((prev) => ({ ...prev, [subtaskId]: !prev[subtaskId] }))}
+				onToggleTodo={(subtaskId: string, todoId: string) => { 
 					const subIdx = subs.findIndex(s => s.id === subtaskId); 
 					if (subIdx !== -1) { 
 						toggleTodo(subs, subIdx, todoId, setSubs, setDirty); 
@@ -261,16 +261,16 @@ export default function TicketDetailPanel({
 						}
 					} 
 				}}
-				onEditSub={(subtaskId: number) => { 
+				onEditSub={(subtaskId: string) => { 
 					startEditingSub(subs, subtaskId, setEditingSub, setEditingSubTitle, setEditingTodoTitles, setEditingTodoEstimates); 
 				}}
-				onSaveSub={(subtaskId: number) => { 
+				onSaveSub={(subtaskId: string) => { 
 					saveEditingSub(subs, subtaskId, editingSubTitle, editingTodoTitles, editingTodoEstimates, setSubs, setEditingSub, setDirty); 
 				}}
-				onCancelSub={(subtaskId: number) => { 
+				onCancelSub={(subtaskId: string) => { 
 					cancelEditingSub(subs, subtaskId, setEditingSub, setEditingSubTitle, setEditingTodoTitles, setEditingTodoEstimates); 
 				}}
-				onDeleteTodo={(subtaskId: number, todoId: number) => { 
+				onDeleteTodo={(subtaskId: string, todoId: string) => { 
 					const subIdx = subs.findIndex(s => s.id === subtaskId); 
 					if (subIdx !== -1) { 
 						deleteTodo(subs, subIdx, todoId, setSubs, setDirty); 
@@ -282,36 +282,42 @@ export default function TicketDetailPanel({
 				editingSubTitle={editingSubTitle}
 				editingTodoTitles={editingTodoTitles}
 				editingTodoEstimates={editingTodoEstimates}
-				onSubTitleChange={(subtaskId: number, title: string) => { 
+				onSubTitleChange={(subtaskId: string, title: string) => { 
 					setEditingSubTitle(prev => ({ ...prev, [subtaskId]: title })); 
 				}}
-				onTodoTitleChange={(subtaskId: number, todoId: number, title: string) => { 
-					setEditingTodoTitles(prev => ({ ...prev, [`${subtaskId}-${todoId}`]: title })); 
+				onTodoTitleChange={(subtaskId: string, todoId: string, title: string) => { 
+					setEditingTodoTitles(prev => ({ 
+						...prev, 
+						[subtaskId]: { ...prev[subtaskId], [todoId]: title } 
+					})); 
 				}}
-				onTodoEstimateChange={(subtaskId: number, todoId: number, estimate: string) => { 
-					setEditingTodoEstimates(prev => ({ ...prev, [`${subtaskId}-${todoId}`]: estimate })); 
+				onTodoEstimateChange={(subtaskId: string, todoId: string, estimate: string) => { 
+					setEditingTodoEstimates(prev => ({ 
+						...prev, 
+						[subtaskId]: { ...prev[subtaskId], [todoId]: estimate } 
+					})); 
 				}}
-				onAddTodo={(subtaskId: number) => { 
+				onAddTodo={(subtaskId: string) => { 
 					const subIdx = subs.findIndex(s => s.id === subtaskId); 
 					if (subIdx !== -1) { 
 						setAddingTodo(prev => ({ ...prev, [subtaskId]: true })); 
 					} 
 				}}
-				onSaveNewTodo={(subtaskId: number) => { 
+				onSaveNewTodo={(subtaskId: string) => { 
 					const subIdx = subs.findIndex(s => s.id === subtaskId); 
 					if (subIdx !== -1) { 
 						addTodo(subs, subIdx, newTodoTitle, newTodoEstimate, setSubs, setAddingTodo, setNewTodoTitle, setNewTodoEstimate, setDirty); 
 					} 
 				}}
-				onCancelNewTodo={(subtaskId: number) => { 
+				onCancelNewTodo={(subtaskId: string) => { 
 					setAddingTodo(prev => ({ ...prev, [subtaskId]: false })); 
 					setNewTodoTitle(prev => ({ ...prev, [subtaskId]: '' })); 
 					setNewTodoEstimate(prev => ({ ...prev, [subtaskId]: '' })); 
 				}}
-				onNewTodoTitleChange={(subtaskId: number, title: string) => { 
+				onNewTodoTitleChange={(subtaskId: string, title: string) => { 
 					setNewTodoTitle(prev => ({ ...prev, [subtaskId]: title })); 
 				}}
-				onNewTodoEstimateChange={(subtaskId: number, estimate: string) => { 
+				onNewTodoEstimateChange={(subtaskId: string, estimate: string) => { 
 					setNewTodoEstimate(prev => ({ ...prev, [subtaskId]: estimate })); 
 				}}
 				addingTodo={addingTodo}
@@ -330,13 +336,14 @@ export default function TicketDetailPanel({
 				adding={addingSub}
 				title={newSubTitle}
 				onTitleChange={setNewSubTitle}
-				onAddClick={() => createSub(parent, newSubTitle, newSubDue, setSubs, setOpenTodos, setAddingSub, setNewSubTitle, setNewSubDue, setDirty)}
-				onCancelClick={() => { 
-		setAddingSub(false);
-		setNewSubTitle('');
-		setNewSubDue('');
+				due={newSubDue}
+				onDueChange={setNewSubDue}
+				onSubmit={() => createSub(parent, newSubTitle, newSubDue, setSubs, setOpenTodos, setAddingSub, setNewSubTitle, setNewSubDue, setDirty)}
+				onCancel={() => { 
+					setAddingSub(false);
+					setNewSubTitle('');
+					setNewSubDue('');
 				}}
-				onOpen={() => setAddingSub(true)}
 			/>
 		</div>
 	);

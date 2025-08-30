@@ -5,18 +5,24 @@ import { ParentTask, SubTask, SubTodo } from '../../types';
 import SectionTitle from '../../components/atoms/SectionTitle';
 import Ticket from '../../components/atoms/icons/Ticket';
 
-interface TicketMapProps {}
+interface TicketGroup {
+	epic: string;
+	list: Array<{
+		parent: ParentTask;
+		children: SubTask[];
+	}>;
+}
 
-export default function TicketMap({}: TicketMapProps) {
-  const [ticketsData, setTicketsData] = useState<any[]>([]);
+export default function TicketMap() {
+  const [ticketsData, setTicketsData] = useState<TicketGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [availableWidth, setAvailableWidth] = useState(0);
   const [draggedTicket, setDraggedTicket] = useState<{ id: string; fromStatus: string } | null>(null);
   const [ticketsByStatus, setTicketsByStatus] = useState({
-    todo: [] as any[],
-    active: [] as any[],
-    in_review: [] as any[],
-    completed: [] as any[]
+    todo: [] as ParentTask[],
+    active: [] as ParentTask[],
+    in_review: [] as ParentTask[],
+    completed: [] as ParentTask[]
   });
 
   useEffect(() => {
@@ -30,14 +36,14 @@ export default function TicketMap({}: TicketMapProps) {
             setTicketsData(result.data);
             // データをステータス別に分類（現在は全てtodoとして扱う）
             const newTicketsByStatus = {
-              todo: [] as any[],
-              active: [] as any[],
-              in_review: [] as any[],
-              completed: [] as any[]
+              todo: [] as ParentTask[],
+              active: [] as ParentTask[],
+              in_review: [] as ParentTask[],
+              completed: [] as ParentTask[]
             };
             
-            result.data.forEach(epicGroup => {
-              epicGroup.list?.forEach((item: any) => {
+            result.data.forEach((epicGroup: TicketGroup) => {
+              epicGroup.list?.forEach((item: { parent: ParentTask; children: SubTask[] }) => {
                 if (item.parent) {
                   // 現在は全てtodoステータスとして扱う（将来的にDBから取得）
                   newTicketsByStatus.todo.push(item.parent);
@@ -132,12 +138,12 @@ export default function TicketMap({}: TicketMapProps) {
         
         // 元のステータスから削除
         newState[draggedTicket.fromStatus as keyof typeof prev] = prev[draggedTicket.fromStatus as keyof typeof prev].filter(
-          (ticket: any) => ticket.id !== draggedTicket.id
+          (ticket: ParentTask) => ticket.id !== draggedTicket.id
         );
         
         // 新しいステータスに追加
         const ticketToMove = prev[draggedTicket.fromStatus as keyof typeof prev].find(
-          (ticket: any) => ticket.id === draggedTicket.id
+          (ticket: ParentTask) => ticket.id === draggedTicket.id
         );
         
         if (ticketToMove) {

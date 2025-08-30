@@ -1,18 +1,66 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import TicketList from '../../components/organisms/TicketList';
 import TicketContent from '../../components/organisms/TicketContent';
 import TicketDetailOverlay from '../../components/organisms/TicketDetailOverlay';
 import { ticketsPageMockData } from '../../data/mockData';
+import type { ParentTask, SubTask } from '../../types';
 
-export default function TicketPage() {
-	const [ticketsData, setTicketsData] = useState<any[]>([]);
+interface TicketGroup {
+	epic: string;
+	list: Array<{
+		parent: ParentTask;
+		children: SubTask[];
+	}>;
+}
+
+interface MockTicketGroup {
+	epic: string;
+	parent: {
+		id: string;
+		title: string;
+		user: string;
+		due: string;
+		progressPercentage: number;
+		description: string;
+		slug: string;
+		status: string;
+		priority: string;
+		commentsCount: number;
+		updatedAt: string;
+		estimateHours: number;
+		epic: string;
+	};
+	children: Array<{
+		id: string;
+		title: string;
+		user: string;
+		due: string;
+		done: boolean;
+		description: string;
+		slug: string;
+		status: string;
+		priority: string;
+		commentsCount: number;
+		updatedAt: string;
+		estimateHours: number;
+		todos: Array<{
+			id: string;
+			title: string;
+			done: boolean;
+			estimateHours: number;
+		}>;
+	}>;
+}
+
+function TicketPageContent() {
+	const [ticketsData, setTicketsData] = useState<TicketGroup[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<Error | null>(null);
 	const [rightView, setRightView] = useState<'kanban' | 'timeline'>('kanban');
-	const [selected, setSelected] = useState<any>(null);
+	const [selected, setSelected] = useState<ParentTask | null>(null);
 	const [creatingEpic, setCreatingEpic] = useState<string | null>(null);
 	const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
 	const searchParams = useSearchParams();
@@ -42,8 +90,22 @@ export default function TicketPage() {
 				console.error('Error fetching tickets:', err);
 				setError(err instanceof Error ? err : new Error('Unknown error'));
 				
-				// エラー時はモックデータを使用
-				setTicketsData(ticketsPageMockData.parents);
+				// エラー時はモックデータを使用（構造を変換）
+				const mockData: TicketGroup[] = ticketsPageMockData.parents.map((item: MockTicketGroup) => ({
+					epic: item.epic,
+					list: [{
+						parent: {
+							...item.parent,
+						} as ParentTask,
+						children: item.children.map(child => ({
+							...child,
+							todos: child.todos.map(todo => ({
+								...todo,
+							}))
+						})) as SubTask[]
+					}]
+				}));
+				setTicketsData(mockData);
 			} finally {
 				setLoading(false);
 			}
@@ -67,7 +129,7 @@ export default function TicketPage() {
 	useEffect(() => {
 		const slug = searchParams.get('slug');
 		if (!slug || ticketsData.length === 0) return;
-		const found = ticketsData.flatMap((g: any) => g.list).find((g: any) => g.parent?.slug === slug);
+		const found = ticketsData.flatMap((g: TicketGroup) => g.list).find((g) => g.parent?.slug === slug);
 		if (found) setSelected(found.parent);
 	}, [searchParams, ticketsData]);
 
@@ -77,13 +139,13 @@ export default function TicketPage() {
 			return [];
 		}
 		
-		const result = ticketsData.map((group: any) => {
+		const result = ticketsData.map((group: TicketGroup) => {
 			if (!group || !group.epic || !group.list) {
 				return null;
 			}
 			
 			// リスト内のアイテムの安全性チェック
-			const validList = group.list.filter((item: any) => {
+			const validList = group.list.filter((item) => {
 				if (!item || !item.parent) {
 					return false;
 				}
@@ -94,20 +156,20 @@ export default function TicketPage() {
 				epic: group.epic,
 				list: validList
 			};
-		}).filter((item: any): item is any => item !== null);
+		}).filter((item): item is TicketGroup => item !== null);
 		
 		return result;
 	}, [ticketsData]);
 
 	// 看板用のチケットデータ（アクティブなチケットのみ）
 	const kanbanTickets = useMemo(() => {
-		const allTickets = ticketsData.flatMap((g: any) => g.list);
+		const allTickets = ticketsData.flatMap((g: TicketGroup) => g.list);
 		
-		const activeTickets = allTickets.filter((g: any) => {
+		const activeTickets = allTickets.filter((g) => {
 			return g.parent && g.parent.is_active === true;
 		});
 		
-		return activeTickets.map((g: any) => ({
+		return activeTickets.map((g) => ({
 			id: g.parent.id,
 			title: g.parent.title,
 			user: g.parent.user,
@@ -123,7 +185,7 @@ export default function TicketPage() {
 	}, [ticketsData]);
 
 	// ハンドラー関数
-	const handleSelect = (ticket: any) => setSelected(ticket);
+	const handleSelect = (ticket: ParentTask) => setSelected(ticket);
 	const handleClose = () => {
 		setSelected(null);
 		setCreatingEpic(null);
@@ -256,5 +318,17 @@ export default function TicketPage() {
 				/>
 			</div>
 		</div>
+	);
+}
+
+export default function TicketPage() {
+	return (
+		<Suspense fallback={
+			<div className="flex items-center justify-center min-h-screen">
+				<div className="text-neutral-600">Loading tickets...</div>
+			</div>
+		}>
+			<TicketPageContent />
+		</Suspense>
 	);
 } 

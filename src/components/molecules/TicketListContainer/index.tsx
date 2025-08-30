@@ -1,17 +1,18 @@
-import VerticalLine from '../../atoms/VerticalLine';
+import VerticalLine from '../../atoms/VerticalLine/index';
 import EpicGroup from '../EpicGroup';
+import type { ParentTask, SubTask } from '../../../types';
 
 interface TicketGroup {
 	epic: string;
 	list: Array<{
-		parent: any;
-		children: any[];
+		parent: ParentTask;
+		children: SubTask[];
 	}>;
 }
 
 interface TicketListContainerProps {
 	groupedByEpic: TicketGroup[];
-	onSelect: (ticket: any) => void;
+	onSelect: (ticket: ParentTask) => void;
 	onCreateEpic: (epic: string) => void;
 	selectedTicketSlug?: string;
 }

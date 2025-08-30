@@ -11,8 +11,8 @@ interface OthersActiveRowProps {
 }
 
 export default function OthersActiveRow({ user, tickets }: OthersActiveRowProps) {
-  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
-  const toggle = useCallback((id: number) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] })), []);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggle = useCallback((id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] })), []);
 
   // ticketsがundefinedまたは空配列の場合は何も表示しない
   if (!tickets || tickets.length === 0) {
