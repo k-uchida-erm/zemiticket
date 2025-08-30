@@ -8,13 +8,18 @@ interface ActiveTicketsBoardProps {
 }
 
 export default function ActiveTicketsBoard({ groups }: ActiveTicketsBoardProps) {
+  console.log('ActiveTicketsBoard groups:', groups);
+  
   return (
     <section>
       <SectionTitle variant="emerald" icon={<IconBoard />}>Active Tickets</SectionTitle>
       <div className="space-y-3">
-        {groups.map((g, idx) => (
-          <TicketTree key={idx} parent={g.parent} subtasks={g.children} />
-        ))}
+        {groups.map((g, idx) => {
+          console.log(`Group ${idx}:`, g);
+          return (
+            <TicketTree key={idx} parent={g.parent} subtasks={g.children} />
+          );
+        })}
       </div>
     </section>
   );

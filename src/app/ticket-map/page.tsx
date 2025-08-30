@@ -15,7 +15,6 @@ export default function TicketMap({}: TicketMapProps) {
   const [ticketsByStatus, setTicketsByStatus] = useState({
     todo: [] as any[],
     active: [] as any[],
-    done: [] as any[],
     in_review: [] as any[],
     completed: [] as any[]
   });
@@ -33,7 +32,6 @@ export default function TicketMap({}: TicketMapProps) {
             const newTicketsByStatus = {
               todo: [] as any[],
               active: [] as any[],
-              done: [] as any[],
               in_review: [] as any[],
               completed: [] as any[]
             };
@@ -88,25 +86,21 @@ export default function TicketMap({}: TicketMapProps) {
 
   // 動的にカラム幅と間隔を計算
   const calculateLayout = () => {
-    if (availableWidth === 0) return { columnWidth: 224, gap: 2 };
+    if (availableWidth === 0) return { columnWidth: 280, gap: 16 };
     
-    const numColumns = 5;
+    const numColumns = 4;
     const totalGaps = numColumns - 1;
-    const minGap = 2; // 最小間隔
-    const maxGap = 8; // 最大間隔
+    const minGap = 16; // 最小間隔を16pxに増加
+    const maxGap = 24; // 最大間隔を24pxに増加
     
     // 利用可能な幅から最適な間隔を計算（左右のパディングを考慮）
-    const availableContentWidth = availableWidth - 32; // 左右のパディング（左24px + 右8px）を引く
-    let gap = minGap;
-    let columnWidth = (availableContentWidth - (totalGaps * gap)) / numColumns;
+    const availableContentWidth = availableWidth - 48; // 左右のパディング（左24px + 右24px）を引く
     
-    // カラム幅が最小値（200px）未満の場合は間隔を調整
-    if (columnWidth < 200) {
-      gap = Math.max(minGap, (availableContentWidth - (numColumns * 200)) / totalGaps);
-      columnWidth = (availableContentWidth - (totalGaps * gap)) / numColumns;
-    }
+    // 固定の間隔を使用してカラム幅を最大化
+    const gap = minGap;
+    const columnWidth = (availableContentWidth - (totalGaps * gap)) / numColumns;
     
-    return { columnWidth: Math.floor(columnWidth), gap: Math.floor(gap) };
+    return { columnWidth: Math.floor(columnWidth), gap };
   };
 
   const { columnWidth, gap } = calculateLayout();
@@ -114,7 +108,6 @@ export default function TicketMap({}: TicketMapProps) {
   const statusConfig = {
     todo: { title: 'To Do', dotColor: 'bg-neutral-400', countBgColor: 'bg-neutral-200', countTextColor: 'text-neutral-600' },
     active: { title: 'Active', dotColor: 'bg-orange-500', countBgColor: 'bg-orange-500/20', countTextColor: 'text-orange-600' },
-    done: { title: 'Done', dotColor: 'bg-yellow-500', countBgColor: 'bg-yellow-500/20', countTextColor: 'text-yellow-600' },
     in_review: { title: 'In Review', dotColor: 'bg-blue-500', countBgColor: 'bg-blue-500/20', countTextColor: 'text-blue-600' },
     completed: { title: 'Completed', dotColor: 'bg-[#00b393]', countBgColor: 'bg-[#00b393]/20', countTextColor: 'text-[#00b393]' }
   };

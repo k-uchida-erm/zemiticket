@@ -11,7 +11,9 @@ export function calculateSubTaskHours(subTask: SubTask): number {
 	}
 	
 	return subTask.todos.reduce((total: number, todo: SubTodo) => {
-		return total + (todo.estimateHours || 0);
+		// estimate_hoursフィールドから値を取得（Supabaseの命名規則）
+		const estimateHours = (todo as { estimate_hours?: number }).estimate_hours;
+		return total + (estimateHours || 0);
 	}, 0);
 }
 
@@ -45,18 +47,36 @@ export function transformTaskData(parentTask: ParentTask) {
 			return 0;
 		}) || [];
 
+		// サブタスクのestimateHoursを計算
+		const subTaskEstimateHours = sortedTodos.reduce((total: number, todo: SubTodo) => {
+			const estimateHours = (todo as { estimate_hours?: number }).estimate_hours;
+			return total + (estimateHours || 0);
+		}, 0);
+
 		return {
 			...subTask,
+			estimateHours: subTaskEstimateHours,  // サブタスクの時間を設定
 			todos: sortedTodos.map((todo: SubTodo) => ({
 				...todo,
-				estimateHours: todo.estimateHours || 0
+				estimateHours: (todo as { estimate_hours?: number }).estimate_hours || 0
 			}))
 		};
 	});
 
+	// 親タスクのestimateHoursを計算
+	const totalEstimateHours = processedSubTasks.reduce((total: number, subTask: SubTask) => {
+		return total + (subTask.estimateHours || 0);
+	}, 0);
+
 	return {
-		...parentTask,
-		sub_tasks: processedSubTasks
+		parent: {
+			...parentTask,
+			user: parentTask.user || 'Unknown',
+			estimateHours: totalEstimateHours,
+			progressPercentage: (parentTask as any).progress_percentage || 0,  // progress_percentageをprogressPercentageに変換
+			sub_tasks: processedSubTasks
+		},
+		children: processedSubTasks
 	};
 } 
  

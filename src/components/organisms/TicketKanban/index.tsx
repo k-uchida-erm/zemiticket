@@ -15,20 +15,19 @@ interface TicketKanbanProps {
 	onTodoToggle?: (subtaskId: string, todoId: string, done: boolean) => void;
 }
 
-interface KanbanTask {
-	id: string | number;
-	title: string;
-	subtasks?: SubTicket[];
+interface KanbanTask extends ParentTask {
+	subtasks?: SubTask[];
 }
 
 interface SubTicket {
 	id: string | number;
 	title: string;
 	status: 'todo' | 'active' | 'completed';
-	todos?: any[];
+	todos?: SubTodo[];
 }
 
 export default function TicketKanban({ tickets, onTicketActivate, onSubtaskStatusUpdate, onTodoToggle }: TicketKanbanProps) {
+	
 	const transformTickets = (tickets: ParentTask[]) => {
 		return tickets.map((t: ParentTask) => ({
 			...t,
@@ -139,25 +138,25 @@ export default function TicketKanban({ tickets, onTicketActivate, onSubtaskStatu
 				<div className="space-y-3">
 					{activeParentTickets.map((ticket) => {
 						const allCompleted = Boolean(ticket.subtasks && ticket.subtasks.length > 0 && 
-							ticket.subtasks.every(subtask => subtask.status === 'completed'));
+							ticket.subtasks.every(subtask => subtask.status === 'done'));
 
 						return (
 							<ParentTicketCard
 								key={ticket.id}
 								parent={{
-									id: typeof ticket.id === 'string' ? parseInt(ticket.id) : ticket.id,
+									id: ticket.id,
 									title: ticket.title,
-									description: '',
-									status: 'todo',
-									priority: 'medium',
-									epic: '',
-									due: '',
-									estimateHours: 0,
-									progressPercentage: 0,
-									slug: '',
-									user: '',
-									commentsCount: 0,
-									updatedAt: '',
+									description: ticket.description || '',
+									status: ticket.status || 'todo',
+									priority: ticket.priority || 'medium',
+									epic: ticket.epic || '',
+									due: ticket.due || '',
+									estimateHours: ticket.estimateHours || 0,
+									progressPercentage: ticket.progressPercentage || 0,
+									slug: ticket.slug || '',
+									user: ticket.user || '',
+									commentsCount: ticket.commentsCount || 0,
+									updatedAt: ticket.updatedAt || '',
 								}}
 								subtasks={[]}
 								expanded={true}

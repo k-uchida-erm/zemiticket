@@ -1,6 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '../../../lib/supabase/server';
 import { transformTaskData } from '../../../lib/utils/timeCalculations';
+import type { ParentTask, SubTask } from '../../../types';
+
+// Supabaseから取得するデータの型定義
+interface SupabaseParentTask {
+	id: string;
+	title: string;
+	description?: string;
+	slug?: string;
+	status?: string;
+	priority?: string;
+	due_date?: string;
+	progress_percentage?: number;
+	sort_order?: number;
+	is_active?: boolean;
+	user_id: string;
+	epic_id?: string;
+	users: { name: string };
+	epics?: { name: string };
+	sub_tasks: SupabaseSubTask[];
+}
+
+interface SupabaseSubTask {
+	id: string;
+	title: string;
+	description?: string;
+	status?: string;
+	priority?: string;
+	due_date?: string;
+	done?: boolean;
+	sort_order?: number;
+	user_id: string;
+	users: { name: string };
+	todos: SupabaseTodo[];
+}
+
+interface SupabaseTodo {
+	id: string;
+	title: string;
+	done?: boolean;
+	estimate_hours?: number;
+	sort_order?: number;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,19 +130,43 @@ export async function GET(request: NextRequest) {
     }
 
     // 共通関数でデータ変換（時間計算込み）
-    const transformedActiveGroups = activeGroups?.map((group: any) => transformTaskData(group)) || [];
+    const transformedActiveGroups = (activeGroups as SupabaseParentTask[])?.map((group: SupabaseParentTask) => {
+      const transformed = transformTaskData({
+        ...group,
+        user: group.users.name,
+        sub_tasks: group.sub_tasks.map(subTask => ({
+          ...subTask,
+          user: subTask.users.name
+        }))
+      });
+      return transformed;
+    }) || [];
 
     // 提出中のチケットは UI が (ParentTask & { children?: SubTask[] })[] を期待するため、
     // transformTaskData の結果から { ...parent, children } に正規化する
-    const transformedSubmittingTickets = submittingTickets?.map((ticket: any) => {
-      const t = transformTaskData(ticket);
+    const transformedSubmittingTickets = (submittingTickets as SupabaseParentTask[])?.map((ticket: SupabaseParentTask) => {
+      const t = transformTaskData({
+        ...ticket,
+        user: ticket.users.name,
+        sub_tasks: ticket.sub_tasks.map(subTask => ({
+          ...subTask,
+          user: subTask.users.name
+        }))
+      });
       return { ...t.parent, children: t.children };
     }) || [];
 
     // Others 用も同様にチケット配列を { ...parent, children } 形式で返す
     // （ユーザー単位でグルーピングする必要があれば、ここで groupBy 可能）
-    const transformedOthersActive = othersActiveParents?.map((ticket: any) => {
-      const t = transformTaskData(ticket);
+    const transformedOthersActive = (othersActiveParents as SupabaseParentTask[])?.map((ticket: SupabaseParentTask) => {
+      const t = transformTaskData({
+        ...ticket,
+        user: ticket.users.name,
+        sub_tasks: ticket.sub_tasks.map(subTask => ({
+          ...subTask,
+          user: subTask.users.name
+        }))
+      });
       return {
         user: t.parent.user,
         tickets: [{ ...t.parent, children: t.children }]

@@ -24,6 +24,8 @@ export default function Home() {
         }
         const result = await response.json();
         
+        console.log('API response:', result);
+        
         // データの安全性を確保
         setActiveGroups(result.activeGroups || []);
         setSubmittingTickets(result.submittingTickets || []);

@@ -56,7 +56,14 @@ export async function GET(request: NextRequest) {
 			
 			// 共通関数でデータ変換（時間計算込み）
 			const formattedParent = transformTaskData(parentTask);
-			groupedByEpic.get(epicName)!.push(formattedParent);
+			
+			// チケットページ用の形式に変換
+			const ticketPageFormat = {
+				parent: formattedParent.parent,
+				children: formattedParent.children
+			};
+			
+			groupedByEpic.get(epicName)!.push(ticketPageFormat);
 		});
 
 		// Mapを配列に変換

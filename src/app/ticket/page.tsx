@@ -31,6 +31,7 @@ export default function TicketPage() {
 				}
 				
 				const result = await response.json();
+
 				
 				if (!result.data) {
 					throw new Error('No data in API response');
@@ -116,6 +117,7 @@ export default function TicketPage() {
 			commentsCount: g.parent.commentsCount,
 			updatedAt: g.parent.updatedAt,
 			epic: g.parent.epic,
+			estimateHours: g.parent.estimateHours, // estimateHoursを追加
 			children: g.children || [] // サブチケットを含める
 		}));
 	}, [ticketsData]);

@@ -15,7 +15,7 @@ export interface ExperimentMeta {
 }
 
 export interface Task {
-  id: number;
+  id: string;
   title: string;
   user: string;
   description?: string;
@@ -47,7 +47,7 @@ export interface Task {
 }
 
 export interface SubTodo {
-  id: number;
+  id: string;
   title: string;
   done?: boolean;
   due?: string;

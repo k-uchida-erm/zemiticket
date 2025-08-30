@@ -8,6 +8,9 @@ interface HomeLeftColumnProps {
 }
 
 export default function HomeLeftColumn({ activeGroups, othersGrouped }: HomeLeftColumnProps) {
+	console.log('HomeLeftColumn activeGroups:', activeGroups);
+	console.log('HomeLeftColumn othersGrouped:', othersGrouped);
+	
 	return (
 		<div className="lg:col-span-3 space-y-8">
 			<ActiveTicketsBoard groups={activeGroups} />
