@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import type { ParentTask, SubTask, SubTodo } from '../../types';
 
 interface UseTicketDetailDataParams {
@@ -6,7 +6,7 @@ interface UseTicketDetailDataParams {
 	subtasks: SubTask[] | undefined;
 	subs: (SubTask & { todos?: SubTodo[] })[];
 	setSubs: React.Dispatch<React.SetStateAction<(SubTask & { todos?: SubTodo[] })[]>>;
-	setOpenTodos: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
+	setOpenTodos: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
 	titleRef: React.RefObject<HTMLDivElement | null>;
 	descRef: React.RefObject<HTMLDivElement | null>;
 	setEditableTitle: (v: string) => void;
@@ -15,9 +15,9 @@ interface UseTicketDetailDataParams {
 	setAddingSub: (v: boolean) => void;
 	setNewSubTitle: (v: string) => void;
 	setNewSubDue: (v: string) => void;
-	setAddingTodo: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
-	setNewTodoTitle: React.Dispatch<React.SetStateAction<Record<number, string>>>;
-	setNewTodoEstimate: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+	setAddingTodo: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+	setNewTodoTitle: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+	setNewTodoEstimate: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 	setDirty: (v: boolean) => void;
 	setCurrentProgress: (v: number) => void;
 }
@@ -31,10 +31,10 @@ export function useTicketDetailData(params: UseTicketDetailDataParams) {
 		if (descRef.current) descRef.current.innerText = parent.description || '';
 		setEditableTitle(parent.title || '');
 		setEditableDesc(parent.description || '');
-		setEditableDue((parent as any).due || '');
+		setEditableDue((parent as { due?: string }).due || '');
 		setSubs((subtasks || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) })));
 		setOpenTodos(() => {
-			const map: Record<number, boolean> = {};
+			const map: Record<string, boolean> = {};
 			for (const s of subtasks || []) map[s.id] = true;
 			return map;
 		});
@@ -45,7 +45,27 @@ export function useTicketDetailData(params: UseTicketDetailDataParams) {
 		setNewTodoTitle({});
 		setNewTodoEstimate({});
 		setDirty(false);
-	}, [parent.id, parent.title, parent.description, (parent as any).due, subtasks]);
+	}, [
+		parent.id, 
+		parent.title, 
+		parent.description, 
+		(parent as { due?: string }).due, 
+		subtasks,
+		titleRef,
+		descRef,
+		setEditableTitle,
+		setEditableDesc,
+		setEditableDue,
+		setSubs,
+		setOpenTodos,
+		setAddingSub,
+		setNewSubTitle,
+		setNewSubDue,
+		setAddingTodo,
+		setNewTodoTitle,
+		setNewTodoEstimate,
+		setDirty
+	]);
 
 	// recompute progress whenever subs change
 	useEffect(() => {
