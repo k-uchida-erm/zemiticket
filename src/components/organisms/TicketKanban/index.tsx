@@ -1,84 +1,229 @@
 "use client";
 
-import { useState, useCallback } from 'react';
-import type { Task } from '../../../types';
-import TicketKanbanCard from '../../molecules/TicketKanbanCard';
+import { useCallback, useMemo, useState } from 'react';
+import ParentTicketCard from '../../molecules/ParentTicketCard';
+import KanbanColumn from './KanbanColumn';
+import SubmitButton from './SubmitButton';
+import DeactivateButton from './DeactivateButton';
+import DropZone from './DropZone';
+import type { ParentTask, SubTask, SubTodo } from '../../../types';
 
 interface TicketKanbanProps {
-  tickets: Task[];
+	tickets: ParentTask[];
+	onTicketActivate?: (ticketId: string, isActive: boolean) => void;
+	onSubtaskStatusUpdate?: (subtaskId: string, status: 'todo' | 'active' | 'completed') => void;
+	onTodoToggle?: (subtaskId: string, todoId: string, done: boolean) => void;
 }
 
-type ColKey = 'todo' | 'in_progress' | 'review';
+interface KanbanTask {
+	id: string | number;
+	title: string;
+	subtasks?: SubTicket[];
+}
 
-const COLUMNS: { key: ColKey; title: string }[] = [
-  { key: 'todo', title: 'To do' },
-  { key: 'in_progress', title: 'In progress' },
-  { key: 'review', title: 'In review' },
-];
+interface SubTicket {
+	id: string | number;
+	title: string;
+	status: 'todo' | 'active' | 'completed';
+	todos?: any[];
+}
 
-const CHIP: Record<ColKey, string> = {
-  todo: 'bg-slate-200 text-slate-800',
-  in_progress: 'bg-[#00b393]/20 text-[#00b393]',
-  review: 'bg-indigo-200 text-indigo-800',
-};
+export default function TicketKanban({ tickets, onTicketActivate, onSubtaskStatusUpdate, onTodoToggle }: TicketKanbanProps) {
+	const transformTickets = (tickets: ParentTask[]) => {
+		return tickets.map((t: ParentTask) => ({
+			...t,
+			subtasks: t.children ? t.children.map((child: SubTask) => ({
+				...child,
+				todos: child.todos || []
+			})) : []
+		}));
+	};
+	
+	const activeParentTickets: KanbanTask[] = useMemo(() => transformTickets(tickets), [tickets]);
+	
+	const [expandedSubtasks, setExpandedSubtasks] = useState<Set<string | number>>(new Set());
+	const [manuallyUpdatedSubtasks, setManuallyUpdatedSubtasks] = useState<Set<string | number>>(new Set());
 
-export default function TicketKanban({ tickets }: TicketKanbanProps) {
-  const [cols, setCols] = useState<Record<ColKey, Task[]>>({
-    todo: tickets.filter((t) => t.status === 'todo'),
-    in_progress: tickets.filter((t) => t.status === 'in_progress'),
-    review: tickets.filter((t) => t.status === 'review'),
-  });
+	const onDragOver = useCallback((e: React.DragEvent) => { 
+		e.preventDefault(); 
+		e.dataTransfer.dropEffect = 'move'; 
+	}, []);
 
-  const onDragStart = useCallback((e: React.DragEvent, task: Task, from: ColKey) => {
-    e.dataTransfer.setData('application/json', JSON.stringify({ id: task.id, from }));
-    e.dataTransfer.effectAllowed = 'move';
-  }, []);
+	const onDropActiveParent = useCallback((e: React.DragEvent) => {
+		e.preventDefault();
+		const raw = e.dataTransfer.getData('application/json');
+		if (!raw) return;
+		try {
+			const data = JSON.parse(raw);
+			if (data.kind === 'parent') {
+				if (onTicketActivate) {
+					onTicketActivate(data.id, true);
+				}
+			}
+		} catch {}
+	}, [onTicketActivate]);
 
-  const onDrop = useCallback((e: React.DragEvent, to: ColKey) => {
-    e.preventDefault();
-    const data = e.dataTransfer.getData('application/json');
-    if (!data) return;
-    const { id, from } = JSON.parse(data) as { id: number; from: ColKey };
-    if (from === to) return;
-    setCols((prev) => {
-      const source = [...prev[from]];
-      const target = [...prev[to]];
-      const idx = source.findIndex((t) => t.id === id);
-      if (idx === -1) return prev;
-      const [task] = source.splice(idx, 1);
-      const updated: Task = { ...task, status: to };
-      target.unshift(updated);
-      return { ...prev, [from]: source, [to]: target };
-    });
-  }, []);
+	const onDropActiveSub = useCallback((e: React.DragEvent, targetStatus: 'todo' | 'active' | 'completed') => {
+		e.preventDefault();
+		const raw = e.dataTransfer.getData('application/json');
+		if (!raw) return;
+		try {
+			const data = JSON.parse(raw);
+			if (data.kind === 'subtask') {
+				// 手動更新フラグを設定
+				setManuallyUpdatedSubtasks(prev => new Set(prev).add(data.id));
+				// サブチケットの状態を手動で更新（優先）
+				if (onSubtaskStatusUpdate) {
+					onSubtaskStatusUpdate(data.id, targetStatus);
+				}
+			}
+		} catch {}
+	}, [onSubtaskStatusUpdate]);
 
-  const onDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  }, []);
+	const onDropCompletedSub = useCallback((e: React.DragEvent) => {
+		e.preventDefault();
+		const raw = e.dataTransfer.getData('application/json');
+		if (!raw) return;
+		try {
+			const data = JSON.parse(raw);
+			if (data.kind === 'subtask') {
+				// 手動更新フラグを設定
+				setManuallyUpdatedSubtasks(prev => new Set(prev).add(data.id));
+				// サブチケットの状態を手動で更新（優先）
+				if (onSubtaskStatusUpdate) {
+					onSubtaskStatusUpdate(data.id, 'completed');
+				}
+			}
+		} catch {}
+	}, [onSubtaskStatusUpdate]);
 
-  return (
-    <section>
-      <div className="grid grid-cols-3 gap-0 divide-x divide-neutral-200 overflow-hidden">
-        {COLUMNS.map((col) => (
-          <div key={col.key}>
-            <div className="px-2 py-1.5 text-[12px]">
-              <span className={`inline-block px-2 py-0.5 rounded-full ${CHIP[col.key]}`}>{col.title}</span>
-            </div>
-            <div
-              className="min-h-[140px] p-1.5 space-y-1.5"
-              onDragOver={onDragOver}
-              onDrop={(e) => onDrop(e, col.key)}
-            >
-              {cols[col.key].map((t) => (
-                <div key={t.id} draggable onDragStart={(e) => onDragStart(e, t, col.key)}>
-                  <TicketKanbanCard ticket={t} disableLink />
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+	const toggleSubtask = useCallback((subtaskId: string | number) => {
+		setExpandedSubtasks(prev => {
+			const newSet = new Set(prev);
+			if (newSet.has(subtaskId)) {
+				newSet.delete(subtaskId);
+			} else {
+				newSet.add(subtaskId);
+			}
+			return newSet;
+		});
+	}, []);
+
+	// todoの完了状態を切り替える関数
+	const handleTodoToggle = useCallback(async (subtaskId: string, todoId: string, done: boolean) => {
+		try {
+			const response = await fetch('/api/subtasks/update-todo-status', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ subtaskId, todoId, done }),
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to update todo status');
+			}
+
+			// 成功したら、親コンポーネントにデータ再取得を要求
+			// これにより、最新の状態が反映される
+			if (onTodoToggle) {
+				onTodoToggle(subtaskId, todoId, done);
+			}
+		} catch (error) {
+			// エラーハンドリング
+		}
+	}, [onTodoToggle]);
+
+	return (
+		<div className="space-y-4 pb-16">
+			{/* アクティブ親チケットエリア */}
+			{activeParentTickets.length > 0 && (
+				<div className="space-y-3">
+					{activeParentTickets.map((ticket) => {
+						const allCompleted = Boolean(ticket.subtasks && ticket.subtasks.length > 0 && 
+							ticket.subtasks.every(subtask => subtask.status === 'completed'));
+
+						return (
+							<ParentTicketCard
+								key={ticket.id}
+								parent={{
+									id: typeof ticket.id === 'string' ? parseInt(ticket.id) : ticket.id,
+									title: ticket.title,
+									description: '',
+									status: 'todo',
+									priority: 'medium',
+									epic: '',
+									due: '',
+									estimateHours: 0,
+									progressPercentage: 0,
+									slug: '',
+									user: '',
+									commentsCount: 0,
+									updatedAt: '',
+								}}
+								subtasks={[]}
+								expanded={true}
+								onToggle={undefined}
+								size="md"
+								renderSubticketsInside={true}
+								hideProgress={true}
+								hideDue={true}
+								hideEpic={true}
+								hideIcon={false}
+								childrenReadOnly={false}
+								customSubtasksContent={ticket.subtasks ? (
+									<div className="mt-6">
+										{/* Submitボタンと非アクティブボタンを右上に配置 */}
+										<div className="absolute top-4 right-8 z-10 flex gap-2">
+											<SubmitButton allCompleted={allCompleted} />
+											<DeactivateButton 
+												onDeactivate={() => onTicketActivate?.(ticket.id.toString(), false)} 
+											/>
+										</div>
+										
+										<div className="grid grid-cols-3 divide-x divide-neutral-200">
+											<KanbanColumn
+												status="todo"
+												subtasks={ticket.subtasks}
+												expandedSubtasks={expandedSubtasks}
+												manuallyUpdatedSubtasks={manuallyUpdatedSubtasks}
+												onToggleSubtask={toggleSubtask}
+												onDragOver={onDragOver}
+												onDrop={(e) => onDropActiveSub(e, 'todo')}
+												onSubtaskStatusUpdate={onSubtaskStatusUpdate}
+												onTodoToggle={handleTodoToggle}
+											/>
+											<KanbanColumn
+												status="active"
+												subtasks={ticket.subtasks}
+												expandedSubtasks={expandedSubtasks}
+												manuallyUpdatedSubtasks={manuallyUpdatedSubtasks}
+												onToggleSubtask={toggleSubtask}
+												onDragOver={onDragOver}
+												onDrop={(e) => onDropActiveSub(e, 'active')}
+												onSubtaskStatusUpdate={onSubtaskStatusUpdate}
+												onTodoToggle={handleTodoToggle}
+											/>
+											<KanbanColumn
+												status="completed"
+												subtasks={ticket.subtasks}
+												expandedSubtasks={expandedSubtasks}
+												manuallyUpdatedSubtasks={manuallyUpdatedSubtasks}
+												onToggleSubtask={toggleSubtask}
+												onDragOver={onDragOver}
+												onDrop={(e) => onDropActiveSub(e, 'completed')}
+												onSubtaskStatusUpdate={onSubtaskStatusUpdate}
+												onTodoToggle={handleTodoToggle}
+											/>
+										</div>
+									</div>
+								) : undefined}
+							/>
+						);
+					})}
+				</div>
+			)}
+			
+			{/* ドロップエリア */}
+			<DropZone onDragOver={onDragOver} onDrop={onDropActiveParent} />
+		</div>
+	);
 } 

@@ -1,67 +1,112 @@
 "use client";
 
-import { useMemo, useState, useCallback } from 'react';
-import TicketKanban from '../../components/organisms/TicketKanban';
-import AllTicketParentCard from '../../components/molecules/AllTicketParentCard';
-import type { ParentTask, SubTask } from '../../types';
-import SectionTitle from '../../components/atoms/SectionTitle';
-import IconList from '../../components/atoms/icons/List';
-import TicketDetailPanel from '../../components/organisms/TicketDetailPanel';
-import IconPlus from '../../components/atoms/icons/Plus';
-import TicketCreateForm from '../../components/molecules/TicketCreateForm';
-import SubHeader from '../../components/molecules/SubHeader';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
+import TicketList from '../../components/organisms/TicketList';
+import TicketContent from '../../components/organisms/TicketContent';
+import TicketDetailOverlay from '../../components/organisms/TicketDetailOverlay';
+import { ticketsPageMockData } from '../../data/mockData';
 
-export default function TicketIndexPage() {
-	const [selected, setSelected] = useState<ParentTask | null>(null);
-	const [creatingEpic, setCreatingEpic] = useState<string | null>(null);
+export default function TicketPage() {
+	const [ticketsData, setTicketsData] = useState<any[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<Error | null>(null);
 	const [rightView, setRightView] = useState<'kanban' | 'timeline'>('kanban');
-	const onSelect = useCallback((p: ParentTask) => setSelected(p), []);
-	const onClose = useCallback(() => { setSelected(null); setCreatingEpic(null); }, []);
-	// Compose parent tickets with subtasks to mirror home but more compact
-	const parents: { parent: ParentTask; children: SubTask[] }[] = [
-		{
-			parent: { id: 1, title: '実験プロトコルv2の確定', user: '田中 太郎', due: '2025-05-30', progressPercentage: 40, description: 'プロトコルの最終版を策定し、全員に共有。', slug: 'protocol-v2-finalize', status: 'in_progress', priority: 'high', commentsCount: 3, updatedAt: '2d ago', estimateHours: 12, epic: 'プロトコルv2' },
-			children: [
-				{ id: 11, title: '前処理スクリプトの整理', user: '佐藤 花子', due: '2025-05-15', done: true, description: '不要関数の削除と共通化', slug: 'cleanup-preprocess', status: 'done', priority: 'medium', commentsCount: 1, updatedAt: '1d ago', estimateHours: 2, todos: [
-					{ id: 111, title: '不要関数の削除', done: true, estimateHours: 0.5 },
-					{ id: 112, title: '共通ユーティリティ化', done: true, estimateHours: 1.5 },
-				] },
-				{ id: 12, title: '装置Aのキャリブレーション', user: '鈴木 次郎', due: '2025-05-20', done: false, description: '温度ドリフトの補正', slug: 'calibrate-device-a', status: 'in_progress', priority: 'urgent', commentsCount: 2, updatedAt: '3h ago', estimateHours: 3, todos: [
-					{ id: 121, title: '温度センサー初期化', done: true, estimateHours: 0.5 },
-					{ id: 122, title: '基準サンプル測定', done: false, estimateHours: 1 },
-					{ id: 123, title: 'ドリフト補正適用', done: false, estimateHours: 1.5 },
-				] },
-			],
-		},
-		{
-			parent: { id: 2, title: '論文ドラフト(導入/関連研究)改稿', user: '高橋 美咲', due: '2025-06-05', progressPercentage: 60, description: 'レビューコメントを反映し、構成を簡潔に整理する。', slug: 'paper-draft-revise-intro-related', status: 'review', priority: 'medium', commentsCount: 4, updatedAt: '6h ago', estimateHours: 16, epic: '論文ドラフト' },
-			children: [
-				{ id: 21, title: '引用箇所の再確認', user: '高橋 美咲', due: '2025-05-25', done: true, description: '2019年以降の文献のみ', slug: 'crosscheck-citations', status: 'done', priority: 'low', commentsCount: 2, updatedAt: '1d ago', estimateHours: 1, todos: [
-					{ id: 211, title: '新規文献収集', done: true, estimateHours: 0.5 },
-					{ id: 212, title: '重複・古い引用の整理', done: true, estimateHours: 0.5 },
-				] },
-				{ id: 22, title: '章構成レビュー反映', user: '田中 太郎', due: '2025-05-28', done: false, description: '導入の重複を削除', slug: 'apply-structure-feedback', status: 'in_progress', priority: 'medium', commentsCount: 1, updatedAt: '2h ago', estimateHours: 2, todos: [
-					{ id: 221, title: '導入の重複箇所抽出', done: true, estimateHours: 0.5 },
-					{ id: 222, title: '関連研究の段落再配置', done: false, estimateHours: 1 },
-					{ id: 223, title: '整合性チェック', done: false, estimateHours: 0.5 },
-				] },
-			],
-		},
-	];
+	const [selected, setSelected] = useState<any>(null);
+	const [creatingEpic, setCreatingEpic] = useState<string | null>(null);
+	const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+	const searchParams = useSearchParams();
 
+	// データ取得
+	useEffect(() => {
+		const fetchTickets = async () => {
+			try {
+				setLoading(true);
+				
+				const response = await fetch('/api/tickets/all');
+				
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(`Failed to fetch tickets: ${response.status} ${errorText}`);
+				}
+				
+				const result = await response.json();
+				
+				if (!result.data) {
+					throw new Error('No data in API response');
+				}
+				
+				setTicketsData(result.data);
+			} catch (err) {
+				console.error('Error fetching tickets:', err);
+				setError(err instanceof Error ? err : new Error('Unknown error'));
+				
+				// エラー時はモックデータを使用
+				setTicketsData(ticketsPageMockData.parents);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchTickets();
+
+		// データ更新イベントを監視
+		const handleDataUpdate = () => {
+			fetchTickets();
+		};
+
+		window.addEventListener('ticketDataUpdated', handleDataUpdate);
+		
+		return () => {
+			window.removeEventListener('ticketDataUpdated', handleDataUpdate);
+		};
+	}, []);
+
+	// クエリのslug指定がある場合、一覧データから対象を選択して詳細オーバーレイを開く
+	useEffect(() => {
+		const slug = searchParams.get('slug');
+		if (!slug || ticketsData.length === 0) return;
+		const found = ticketsData.flatMap((g: any) => g.list).find((g: any) => g.parent?.slug === slug);
+		if (found) setSelected(found.parent);
+	}, [searchParams, ticketsData]);
+
+	// エピック別にグループ化
 	const groupedByEpic = useMemo(() => {
-		const map = new Map<string, { parent: ParentTask; children: SubTask[] }[]>();
-		for (const g of parents) {
-			const key = g.parent.epic || '未分類';
-			if (!map.has(key)) map.set(key, []);
-			map.get(key)!.push(g);
+		if (!ticketsData.length) {
+			return [];
 		}
-		return Array.from(map.entries());
-	}, [parents]);
+		
+		const result = ticketsData.map((group: any) => {
+			if (!group || !group.epic || !group.list) {
+				return null;
+			}
+			
+			// リスト内のアイテムの安全性チェック
+			const validList = group.list.filter((item: any) => {
+				if (!item || !item.parent) {
+					return false;
+				}
+				return true;
+				});
+			
+			return {
+				epic: group.epic,
+				list: validList
+			};
+		}).filter((item: any): item is any => item !== null);
+		
+		return result;
+	}, [ticketsData]);
 
-	// Flatten to tickets for Kanban
+	// 看板用のチケットデータ（アクティブなチケットのみ）
 	const kanbanTickets = useMemo(() => {
-		return parents.map((g) => ({
+		const allTickets = ticketsData.flatMap((g: any) => g.list);
+		
+		const activeTickets = allTickets.filter((g: any) => {
+			return g.parent && g.parent.is_active === true;
+		});
+		
+		return activeTickets.map((g: any) => ({
 			id: g.parent.id,
 			title: g.parent.title,
 			user: g.parent.user,
@@ -71,69 +116,142 @@ export default function TicketIndexPage() {
 			commentsCount: g.parent.commentsCount,
 			updatedAt: g.parent.updatedAt,
 			epic: g.parent.epic,
+			children: g.children || [] // サブチケットを含める
 		}));
-	}, [parents]);
+	}, [ticketsData]);
+
+	// ハンドラー関数
+	const handleSelect = (ticket: any) => setSelected(ticket);
+	const handleClose = () => {
+		setSelected(null);
+		setCreatingEpic(null);
+	};
+	const handleCreateEpic = (epic: string) => setCreatingEpic(epic);
+	const handleViewChange = (view: 'kanban' | 'timeline') => setRightView(view);
+	
+	// チケットアクティブ化のハンドラー
+	const handleTicketActivate = async (ticketId: string, isActive: boolean) => {
+		try {
+			const response = await fetch('/api/tickets/update-active', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ ticketId, isActive }),
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to update ticket active status');
+			}
+
+			// 成功したらデータを再取得して看板を更新
+			const refreshResponse = await fetch('/api/tickets/all');
+			if (refreshResponse.ok) {
+				const result = await refreshResponse.json();
+				if (result.data) {
+					setTicketsData(result.data);
+				}
+			}
+		} catch (error) {
+			console.error('Error updating ticket active status:', error);
+		}
+	};
+
+	// サブタスクの状態更新ハンドラー
+	const handleSubtaskStatusUpdate = async (subtaskId: string, status: 'todo' | 'active' | 'completed') => {
+		try {
+			const response = await fetch('/api/subtasks/update-status', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ subtaskId, status }),
+			});
+
+			if (!response.ok) {
+				const responseText = await response.text();
+				throw new Error(`Failed to update subtask status: ${response.status} ${responseText}`);
+			}
+
+			// 成功したらデータを再取得して看板を更新
+			const refreshResponse = await fetch('/api/tickets/all');
+			if (refreshResponse.ok) {
+				const result = await refreshResponse.json();
+				if (result.data) {
+					setTicketsData(result.data);
+				}
+			}
+		} catch (error) {
+			// エラーハンドリング
+		}
+	};
+
+	// todoの完了状態更新ハンドラー
+	const handleTodoToggle = async (subtaskId: string, todoId: string, done: boolean) => {
+		try {
+			// APIは既にTicketKanbanで呼び出されているので、
+			// ここではデータの再取得のみを行う
+			const refreshResponse = await fetch('/api/tickets/all');
+			if (refreshResponse.ok) {
+				const result = await refreshResponse.json();
+				if (result.data) {
+					setTicketsData(result.data);
+				}
+			}
+		} catch (error) {
+			// エラーハンドリング
+		}
+	};
+
+
+
+	// ローディング状態
+	if (loading) {
+		return (
+			<div className="flex items-center justify-center min-h-screen">
+				<div className="text-neutral-600">Loading tickets...</div>
+			</div>
+		);
+	}
+
+	// エラー時はモックデータを使用（既にuseEffectで設定済み）
+	if (error) {
+		console.warn('Using mock data due to error:', error);
+	}
 
 	return (
-		<div className="grid grid-cols-10 gap-6">
-			<div className="col-span-3 space-y-2">
-				<section>
-					<SectionTitle icon={<IconList />}>All tickets</SectionTitle>
-				</section>
-				<div className="mt-5 space-y-3 relative pl-2">
-					<div className="absolute top-0 bottom-0 left-0 border-l-2 border-[#00b393]/50 pointer-events-none"></div>
-					{groupedByEpic.map(([epic, list]) => (
-						<div key={epic} className="relative pt-6 pb-3">
-							<div className="absolute -left-[20px] -top-2 z-10 flex items-center gap-1.5">
-								<span className="inline-flex items-center rounded-full border border-[#00b393] bg-white text-neutral-700 text-[11px] px-2 py-[3px] leading-tight">
-									{epic}
-									<span className="ml-1 text-[10px] text-neutral-400">{list.length}</span>
-								</span>
-								<button onClick={() => setCreatingEpic(epic)} className="inline-flex items-center justify-center h-5 w-5 rounded-full border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50">
-									<span className="[&_svg]:w-3.5 [&_svg]:h-3.5"><IconPlus /></span>
-								</button>
-							</div>
-							<div className="mt-1 space-y-1.5">
-								{list.map((g) => (
-									<AllTicketParentCard
-										key={g.parent.id}
-										parent={g.parent}
-										subtasks={g.children}
-										onSelect={onSelect}
-									/>
-								))}
-							</div>
-						</div>
-					))}
-				</div>
+		<div className="flex h-screen">
+			{/* 左パネル - 収納可能 */}
+			<div className={`transition-all duration-300 ease-in-out ${
+				isLeftPanelCollapsed ? 'w-0 overflow-hidden' : 'w-[30%]'
+			}`}>
+				<TicketList 
+					groupedByEpic={groupedByEpic}
+					onSelect={handleSelect}
+					onCreateEpic={handleCreateEpic}
+					isCollapsed={isLeftPanelCollapsed}
+				/>
 			</div>
-			<div className="col-span-7 border-l border-neutral-200 relative overflow-hidden">
-				<div className="min-h-[calc(100vh-4rem)] px-6">
-					<SubHeader items={[{ key: 'kanban', label: 'Kanban' }, { key: 'timeline', label: 'Timeline' }]} activeKey={rightView} onChange={(k) => setRightView(k as 'kanban' | 'timeline')} />
-					<div className="pt-3">
-						{rightView === 'kanban' ? (
-							<TicketKanban tickets={kanbanTickets} />
-						) : (
-							<section>
-								<div className="text-[13px] text-neutral-600">Timeline coming soon...</div>
-							</section>
-						)}
-					</div>
-				</div>
-				<div className={`absolute inset-0 h-full w-full bg-white transition-transform duration-300 translate-x-full ${(selected || creatingEpic) ? '!translate-x-0' : ''} z-50`}>
-					<div className="overflow-auto h-full px-6 pt-0 pb-4">
-						{creatingEpic ? (
-							<TicketCreateForm defaultEpic={creatingEpic} onCancel={onClose} onCreate={() => onClose()} />
-						) : selected ? (
-							(() => {
-								const group = parents.find((g) => g.parent.id === selected.id);
-								return (
-									<TicketDetailPanel parent={selected} subtasks={group?.children || []} onClose={onClose} onSave={() => onClose()} />
-								);
-							})()
-						) : null}
-					</div>
-				</div>
+			
+			{/* 右パネル */}
+			<div className={`flex-1 relative transition-all duration-300 ease-in-out`}>
+				<TicketContent 
+					rightView={rightView}
+					onViewChange={handleViewChange}
+					kanbanTickets={kanbanTickets}
+					isLeftPanelCollapsed={isLeftPanelCollapsed}
+					onToggleLeftPanel={() => setIsLeftPanelCollapsed(!isLeftPanelCollapsed)}
+					onTicketActivate={handleTicketActivate}
+					onSubtaskStatusUpdate={handleSubtaskStatusUpdate}
+					onTodoToggle={handleTodoToggle}
+				/>
+				
+				<TicketDetailOverlay 
+					selected={selected}
+					creatingEpic={creatingEpic}
+					onClose={handleClose}
+					ticketsData={ticketsData}
+				/>
 			</div>
 		</div>
 	);

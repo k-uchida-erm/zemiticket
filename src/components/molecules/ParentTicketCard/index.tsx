@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { ParentTask, SubTask } from '../../../types';
 import ProgressBar from '../../atoms/ProgressBar';
 import Card from '../../atoms/Card';
@@ -11,6 +12,8 @@ import IconMoodGreat from '../../atoms/icons/MoodGreat';
 import IconMoodNormal from '../../atoms/icons/MoodNormal';
 import IconMoodRush from '../../atoms/icons/MoodRush';
 import IconCircleCheck from '../../atoms/icons/CircleCheck';
+import IconPlus from '../../atoms/icons/Plus';
+import { useRouter } from 'next/navigation';
 
 interface ParentTicketCardProps {
 	parent: ParentTask;
@@ -19,6 +22,7 @@ interface ParentTicketCardProps {
 	children?: SubTask[];
 	expanded?: boolean;
 	onToggle?: () => void;
+	onToggleTodo?: (subtaskId: number, todoId: number) => void;
 	size?: 'md' | 'sm' | 'xs';
 	renderSubticketsInside?: boolean;
 	mood?: 'great' | 'normal' | 'rush';
@@ -29,12 +33,39 @@ interface ParentTicketCardProps {
 	hideEpic?: boolean;
 	hideIcon?: boolean;
 	disableLinks?: boolean;
+	customSubtasksContent?: React.ReactNode;
 }
 
 function calcProgress(list: SubTask[]): number {
 	if (list.length === 0) return 0;
-	const completed = list.filter((c) => c.done).length;
-	return Math.round((completed / list.length) * 100);
+	
+	// todoの完了状態に基づいて進捗を計算
+	let totalTodos = 0;
+	let completedTodos = 0;
+	
+	list.forEach(subtask => {
+		if (subtask.todos && Array.isArray(subtask.todos)) {
+			subtask.todos.forEach(todo => {
+				totalTodos++;
+				if (todo.done) {
+					completedTodos++;
+				}
+			});
+		}
+	});
+	
+	if (totalTodos === 0) return 0;
+	return Math.round((completedTodos / totalTodos) * 100);
+}
+
+function isAllSubtasksCompleted(list: SubTask[]): boolean {
+	if (list.length === 0) return false;
+	
+	// 各サブチケットのtodosが全て完了しているかチェック
+	return list.every(subtask => {
+		if (!subtask.todos || subtask.todos.length === 0) return false;
+		return subtask.todos.every(todo => todo.done);
+	});
 }
 
 function formatDue(due?: string): string {
@@ -45,14 +76,65 @@ function formatDue(due?: string): string {
 	return `${due}`;
 }
 
-export default function ParentTicketCard({ parent, subtasks, children, expanded = true, onToggle, size = 'md', renderSubticketsInside = false, mood = 'normal', childrenReadOnly = false, hideProgress = false, hideDue = false, inlineBadge, hideEpic = false, hideIcon = false, disableLinks = false }: ParentTicketCardProps) {
+export default function ParentTicketCard({ parent, subtasks, children, expanded = true, onToggle, onToggleTodo, size = 'md', renderSubticketsInside = false, mood = 'normal', childrenReadOnly = false, hideProgress = false, hideDue = false, inlineBadge, hideEpic = false, hideIcon = false, disableLinks = false, customSubtasksContent }: ParentTicketCardProps) {
 	const subtasksList: SubTask[] = Array.isArray(subtasks) ? subtasks : (children || []);
-	const computedProgress = parent.progressPercentage ?? calcProgress(subtasksList);
+	const [currentProgress, setCurrentProgress] = useState(parent.progressPercentage ?? 0);
+	const computedProgress = currentProgress;
+	
+	const router = useRouter();
+
+	// 進捗更新イベントを監視
+	useEffect(() => {
+		const handleProgressUpdate = async (event: CustomEvent) => {
+			// この親タスクに関連するtodoの更新かチェック
+			if (event.detail.todoId) {
+				const isRelatedTodo = subtasksList.some(subtask => 
+					subtask.todos?.some(todo => todo.id === event.detail.todoId)
+				);
+				
+				if (isRelatedTodo) {
+					// DBから最新の進捗を取得
+					try {
+						const response = await fetch(`/api/parent-tasks/${parent.id}/progress`);
+						if (response.ok) {
+							const data = await response.json();
+							const newProgress = data.progressPercentage;
+							setCurrentProgress(newProgress);
+						}
+					} catch (error) {
+						console.error('Failed to fetch latest progress:', error);
+					}
+				}
+			}
+		};
+
+		window.addEventListener('todoProgressUpdated', handleProgressUpdate as unknown as EventListener);
+		
+		return () => {
+			window.removeEventListener('todoProgressUpdated', handleProgressUpdate as unknown as EventListener);
+		};
+	}, [parent.id, subtasksList]);
+
+	// 進捗の変更を監視
+	useEffect(() => {
+	}, [currentProgress]);
+
+
+
+
 
 	const handleToggleClick = (e: React.MouseEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
 		onToggle?.();
+	};
+
+
+
+	const handleReviewRequest = () => {
+		if (parent.slug) {
+			router.push(`/ticket/${parent.slug}/review-request`);
+		}
 	};
 
 	const isSm = size === 'sm';
@@ -85,13 +167,6 @@ export default function ParentTicketCard({ parent, subtasks, children, expanded 
 
 	const body = (
 		<Card className={`${cardPadding} ${minHeight} relative shadow-sm rounded-md`}>
-			{isXs && (
-				<div className="absolute top-0 right-0 transform translate-x-[30%] -translate-y-[30%] pointer-events-none">
-					<span className="inline-flex items-center justify-center text-[#00b393] [&_svg]:w-4 [&_svg]:h-4">
-						<IconCircleCheck />
-					</span>
-				</div>
-			)}
 			{parent.due && !hideDue && (
 				<div className={`absolute top-0 right-10 z-10 flex items-center gap-1`}>
 					<div className="rounded-t-none rounded-b-lg bg-white font-medium text-[14px] pl-2.5 pr-3 py-1.5 tracking-[0.02em] leading-none tabular-nums border-x border-b border-neutral-200/70 text-center">
@@ -115,6 +190,7 @@ export default function ParentTicketCard({ parent, subtasks, children, expanded 
 					)}
 					<div className={`flex items-start justify-between ${titleRowGap} ${titleRowMt}`}>
 						<div className="min-w-0 flex items-center gap-2">
+							{inlineBadge}
 							{!hideIcon && (
 								<span className="inline-flex items-center justify-center text-[#00b393] [&_svg]:w-5 [&_svg]:h-5 [&_svg]:stroke-[1.8]">
 									<IconTicket />
@@ -124,7 +200,6 @@ export default function ParentTicketCard({ parent, subtasks, children, expanded 
 							{typeof parent.estimateHours === 'number' && (
 								<span className="shrink-0 text-[10px] px-1.5 py-[1px] rounded-full bg-indigo-700 text-white">{parent.estimateHours}h</span>
 							)}
-							{inlineBadge}
 							{showToggle && (
 								<button
 									type="button"
@@ -154,15 +229,37 @@ export default function ParentTicketCard({ parent, subtasks, children, expanded 
 						</div>
 					)}
 
-					{renderSubticketsInside && expanded && subtasksList.length > 0 && (
+					{renderSubticketsInside && expanded && (
 						<div className="mt-0">
-							<ul className="space-y-0 divide-y divide-neutral-200 border-t border-neutral-200 mt-2">
-								{subtasksList.map((child) => (
-									<li key={child.id} className="relative">
-										<SubTicketCard ticket={child} variant="flat" readOnly={childrenReadOnly} disableLink={disableLinks} />
-									</li>
-								))}
-							</ul>
+							{customSubtasksContent ? (
+								customSubtasksContent
+							) : subtasksList.length > 0 ? (
+								<>
+									<ul className="space-y-0 divide-y divide-neutral-200 border-t border-neutral-200 mt-2">
+										{subtasksList.map((child, index) => (
+											<li key={child.id} className={`relative ${index === subtasksList.length - 1 ? 'pb-0' : ''}`}>
+												<SubTicketCard ticket={child} variant="flat" readOnly={childrenReadOnly} disableLink={disableLinks} />
+											</li>
+										))}
+									</ul>
+									
+									{/* Create a review request ボタン */}
+									{isAllSubtasksCompleted(subtasksList) && (
+										<div className="mt-0 pt-2 border-t border-neutral-200">
+											<div className="flex justify-end">
+												<button
+													type="button"
+													onClick={handleReviewRequest}
+													className="px-4 py-2.5 bg-white border border-[#00b393] text-[#00b393] text-sm font-medium rounded-md transition-colors duration-200 flex items-center justify-center gap-2 hover:bg-[#00b393]/5"
+												>
+													<IconPlus className="w-4 h-4" />
+													Create a review request
+												</button>
+											</div>
+										</div>
+									)}
+								</>
+							) : null}
 						</div>
 					)}
 				</div>

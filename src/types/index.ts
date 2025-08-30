@@ -53,15 +53,21 @@ export interface SubTodo {
   due?: string;
   estimateHours?: number;
   inProgress?: boolean;
+  sort_order?: number;
 }
 
 export interface SubTask extends Task {
   due?: string;
   done?: boolean;
   todos?: SubTodo[];
+  sort_order?: number;
 }
 
 export interface ParentTask extends Task {
-  due?: string;
-  progressPercentage?: number;
+	due?: string;
+	progressPercentage?: number;
+	sort_order?: number;
+	is_active?: boolean;
+	sub_tasks?: SubTask[];
+	children?: SubTask[];
 } 

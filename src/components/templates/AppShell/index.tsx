@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import Header from "../../organisms/Header";
 import Sidebar from "../../organisms/Sidebar";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const collapsedSidebarWidth = '3.5vw';
-  const contentMarginLeft = useMemo(() => collapsedSidebarWidth, []);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
 
   // Redirect implicit OAuth token hashes to /auth/login for processing
@@ -21,6 +20,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   const isAuthRoute = pathname === '/auth/login' || pathname.startsWith('/auth/');
+  
+  // チケットページは独立したスクロール、その他は全ページスクロール
+  const isTicketPage = pathname === '/ticket' || pathname.startsWith('/ticket/') || pathname === '/ticket-map';
+
+  // サイドバーの状態を管理する関数
+  const handleSidebarToggle = (collapsed: boolean) => {
+    setIsSidebarCollapsed(collapsed);
+  };
 
   if (isAuthRoute) {
     return (
@@ -33,10 +40,24 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-white overflow-hidden">
       <Header />
-      <Sidebar />
-      <div style={{ marginLeft: contentMarginLeft }} className="fixed top-16 right-0 bottom-0 left-[3.5vw]">
-        <main className="h-full overflow-auto px-[12%] pt-5 pb-6">
-          {children}
+      <Sidebar onToggle={handleSidebarToggle} />
+      <div 
+        className="fixed top-16 right-0 bottom-0 transition-all duration-300"
+        style={{ 
+          left: isSidebarCollapsed ? '4rem' : '15vw'
+        }}
+      >
+        <main className={`h-full ${isTicketPage ? 'overflow-hidden' : 'overflow-auto pt-5 pb-6'}`} style={{ 
+          paddingLeft: pathname === '/research' ? '20%' : pathname === '/ticket-map' ? '0%' : '3%', 
+          paddingRight: pathname === '/research' ? '20%' : pathname === '/ticket-map' ? '0%' : '3%' 
+        }}>
+          {pathname === '/ticket-map' ? (
+            <div className="overflow-auto h-full">
+              {children}
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
     </div>

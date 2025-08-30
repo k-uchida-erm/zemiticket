@@ -1,358 +1,343 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ParentTask, SubTask, SubTodo } from '../../../types';
-import ProgressBar from '../../atoms/ProgressBar';
-import StatusDot from '../../atoms/StatusDot';
-import IconClose from '../../atoms/icons/Close';
-import IconChevronDown from '../../atoms/icons/ChevronDown';
+import { useMemo, useRef, useEffect, useState } from 'react';
+import type { ParentTask, SubTask } from '../../../types';
+import TicketDetailProgress from '../../molecules/TicketDetailProgress';
+import AddSubticketRow from '../../molecules/AddSubticketRow';
+import TicketDetailHeader from '../../molecules/TicketDetailHeader';
+import SortableSubTasksContainer from '../../molecules/SortableSubTasksContainer';
 import IconPlus from '../../atoms/icons/Plus';
+import { useTicketDetailState } from '../../../lib/hooks/useTicketDetailState';
+import { useTicketDetailAPI } from '../../../lib/hooks/useTicketDetailAPI';
+import { useTicketDetailReorder } from '../../../lib/hooks/useTicketDetailReorder';
+import { useTicketDetailEditing } from '../../../lib/hooks/useTicketDetailEditing';
+
+interface Comment {
+	id: string;
+	text: string;
+	author: string;
+	timestamp: string;
+}
 
 interface TicketDetailPanelProps {
 	parent: ParentTask;
 	subtasks?: SubTask[];
-	onClose?: () => void;
-	onSave?: (data: { title: string; description?: string; due?: string; subs: SubTaskWithLocal[] }) => void;
+	onClose: () => void;
+	onSave?: (data: { title: string; description: string; due: string }) => void;
 	onToggleFullscreen?: () => void;
 	isFullscreen?: boolean;
 }
 
-export default function TicketDetailPanel({ parent, subtasks = [], onClose, onSave, onToggleFullscreen, isFullscreen = false }: TicketDetailPanelProps) {
-	const [editableTitle, setEditableTitle] = useState<string>(parent.title);
-	const [editableDesc, setEditableDesc] = useState<string>(parent.description || '');
-	const [editableDue, setEditableDue] = useState<string>(parent.due || '');
-	const [subs, setSubs] = useState<SubTaskWithLocal[]>(
-		(subtasks || []).map((c) => ({
-			...c,
-			todos: (c.todos || []).map((t) => ({ ...t })),
-		}))
-	);
-	const [dirty, setDirty] = useState<boolean>(false);
+export default function TicketDetailPanel({ 
+	parent, 
+	subtasks = [], 
+	onClose, 
+	onSave, 
+	onToggleFullscreen, 
+	isFullscreen = false 
+}: TicketDetailPanelProps) {
+	// Use custom hooks
+	const {
+		editableTitle,
+		setEditableTitle,
+		editableDesc,
+		setEditableDesc,
+		editableDue,
+		setEditableDue,
+		dirty,
+		setDirty,
+		currentProgress,
+		subs,
+		setSubs,
+		openTodos,
+		setOpenTodos,
+		addingSub,
+		setAddingSub,
+		newSubTitle,
+		setNewSubTitle,
+		newSubDue,
+		setNewSubDue,
+		addingTodo,
+		setAddingTodo,
+		newTodoTitle,
+		setNewTodoTitle,
+		newTodoEstimate,
+		setNewTodoEstimate,
+		editingSub,
+		setEditingSub,
+		editingSubTitle,
+		setEditingSubTitle,
+		editingTodoTitles,
+		setEditingTodoTitles,
+		editingTodoEstimates,
+		setEditingTodoEstimates,
+	} = useTicketDetailState(parent, subtasks);
 
-	const [openTodos, setOpenTodos] = useState<Record<number, boolean>>(() => {
-		const map: Record<number, boolean> = {};
-		for (const s of subtasks || []) map[s.id] = true;
-		return map;
-	});
-	const [addingSub, setAddingSub] = useState<boolean>(false);
-	const [newSubTitle, setNewSubTitle] = useState<string>('');
-	const [newSubDue, setNewSubDue] = useState<string>('');
-	// removed: estimate input state
-	// const [newSubEstimate, setNewSubEstimate] = useState<string>('');
+	// コメント関連の状態
+	const [subtaskComments, setSubtaskComments] = useState<Record<number, Comment[]>>({});
+	const [todoComments, setTodoComments] = useState<Record<number, Comment[]>>({});
 
-	const [addingTodo, setAddingTodo] = useState<Record<number, boolean>>({});
-	const [newTodoTitle, setNewTodoTitle] = useState<Record<number, string>>({});
-	const [newTodoEstimate, setNewTodoEstimate] = useState<Record<number, string>>({});
+	// コメント関連のハンドラー
+	const handleAddSubtaskComment = (subtaskId: number, text: string) => {
+		const newComment: Comment = {
+			id: `comment-${Date.now()}`,
+			text,
+			author: 'Current User', // TODO: 実際のユーザー情報を使用
+			timestamp: new Date().toLocaleString()
+		};
+
+		setSubtaskComments(prev => ({
+			...prev,
+			[subtaskId]: [...(prev[subtaskId] || []), newComment]
+		}));
+	};
+
+	const handleDeleteSubtaskComment = (subtaskId: number, commentId: string) => {
+		setSubtaskComments(prev => ({
+			...prev,
+			[subtaskId]: (prev[subtaskId] || []).filter(c => c.id !== commentId)
+		}));
+	};
+
+	// 親チケット用のダーティーフラグ（タイトル/説明/期日の変更にのみ反応）
+	const [parentDirty, setParentDirty] = useState(false);
+
+	const handleAddTodoComment = (subtaskId: number, todoId: number, text: string) => {
+		const newComment: Comment = {
+			id: `comment-${Date.now()}`,
+			text,
+			author: 'Current User', // TODO: 実際のユーザー情報を使用
+			timestamp: new Date().toLocaleString()
+		};
+
+		setTodoComments(prev => ({
+			...prev,
+			[todoId]: [...(prev[todoId] || []), newComment]
+		}));
+	};
+
+	const handleDeleteTodoComment = (subtaskId: number, todoId: number, commentId: string) => {
+		setTodoComments(prev => ({
+			...prev,
+			[todoId]: (prev[todoId] || []).filter(c => c.id !== commentId)
+		}));
+	};
+
+	const {
+		handleHeaderSave,
+		toggleTodo,
+		saveEditingSub,
+		deleteTodo,
+		addTodo,
+		createSub,
+	} = useTicketDetailAPI();
+
+	const {
+		reorderSubtasks,
+		reorderTodos,
+	} = useTicketDetailReorder();
+
+	const {
+		startEditingSub,
+		cancelEditingSub,
+	} = useTicketDetailEditing();
 
 	const titleRef = useRef<HTMLDivElement>(null);
 	const descRef = useRef<HTMLDivElement>(null);
 
-	// Initialize contentEditable fields on mount/when parent changes
+	// Initialize refs when parent changes
 	useEffect(() => {
+		if (titleRef.current) titleRef.current.innerText = parent.title || '';
+		if (descRef.current) descRef.current.innerText = parent.description || '';
+	}, [parent.id, parent.title, parent.description]);
+
+	// 親タスクの合計時間を計算（サブタスク内のTODOの時間のみ）
+	const calculateParentTaskTotalHours = useMemo(() => {
+		let totalHours = 0;
+		subs.forEach(sub => {
+			if (sub.todos) {
+				sub.todos.forEach(todo => {
+					if (todo.estimateHours) {
+						totalHours += todo.estimateHours;
+					}
+				});
+			}
+		});
+		return totalHours;
+	}, [subs]);
+
+	// Header save/cancel handlers
+	async function handleHeaderSaveWrapper() {
+		const title = titleRef.current?.innerText ?? editableTitle;
+		const desc = descRef.current?.innerText ?? editableDesc;
+		await handleHeaderSave(parent, title, desc, editableDue, setDirty);
+		setParentDirty(false);
+	}
+
+	function handleHeaderCancel() {
 		if (titleRef.current) titleRef.current.innerText = parent.title || '';
 		if (descRef.current) descRef.current.innerText = parent.description || '';
 		setEditableTitle(parent.title || '');
 		setEditableDesc(parent.description || '');
 		setEditableDue(parent.due || '');
-		setSubs((subtasks || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) })));
-		setOpenTodos(() => {
-			const map: Record<number, boolean> = {};
-			for (const s of subtasks || []) map[s.id] = true;
-			return map;
-		});
+		setDirty(false);
+		setParentDirty(false);
 		setAddingSub(false);
 		setNewSubTitle('');
 		setNewSubDue('');
-		// removed: setNewSubEstimate('');
-		setAddingTodo({});
-		setNewTodoTitle({});
-		setNewTodoEstimate({});
-		setDirty(false);
-	// include parent fields and subtasks to satisfy exhaustive-deps
-	}, [parent.id, parent.title, parent.description, parent.due, subtasks]);
-
-	const computedProgress = useMemo(() => {
-		if (typeof parent.progressPercentage === 'number') return parent.progressPercentage;
-		return calcProgress(subs);
-	}, [parent.progressPercentage, subs]);
-
-	const computeSubHours = (s: SubTaskWithLocal) => {
-		if (!Array.isArray(s.todos)) return 0;
-		return s.todos.reduce((sum, t) => sum + (typeof t.estimateHours === 'number' ? t.estimateHours : 0), 0);
-	};
-
-	const parentHours = useMemo(() => {
-		if (typeof parent.estimateHours === 'number') return parent.estimateHours;
-		return subs.reduce((acc, s) => acc + computeSubHours(s), 0);
-	}, [parent.estimateHours, subs]);
+	}
 
 	return (
-		<div className="pt-0 pb-4 relative">
-			{/* Top-right actions */}
-			<div className="absolute top-0 right-0 flex items-center gap-2">
-				{dirty && (
-					<>
-						<button onClick={() => { const title = titleRef.current?.innerText ?? editableTitle; const desc = descRef.current?.innerText ?? editableDesc; onSave?.({ title, description: desc || undefined, due: editableDue || undefined, subs }); setDirty(false); }} className="px-3 py-1.5 text-[12px] rounded bg-[#00b393] text-white">Save</button>
-						<button onClick={() => { if (titleRef.current) titleRef.current.innerText = parent.title || ''; if (descRef.current) descRef.current.innerText = parent.description || ''; setEditableTitle(parent.title || ''); setEditableDesc(parent.description || ''); setEditableDue(parent.due || ''); setSubs((subtasks || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) }))); setDirty(false); setAddingSub(false); setNewSubTitle(''); setNewSubDue(''); /* removed setNewSubEstimate(''); */ setAddingTodo({}); setNewTodoTitle({}); setNewTodoEstimate({}); }} className="px-3 py-1.5 text-[12px] rounded border border-neutral-300 text-neutral-700 bg-white">Cancel</button>
-					</>
+		<div className="pt-5 pb-20 relative">
+			<TicketDetailHeader
+				isFullscreen={!!isFullscreen}
+				onToggleFullscreen={onToggleFullscreen || (() => {})}
+				onClose={onClose}
+				dirty={parentDirty}
+				onSave={handleHeaderSaveWrapper}
+				onCancel={handleHeaderCancel}
+				titleRef={titleRef}
+				descRef={descRef}
+				onInputTitle={(text) => { setEditableTitle(text); setParentDirty(true); setDirty(true); }}
+				onInputDesc={(text) => { setEditableDesc(text); setParentDirty(true); setDirty(true); }}
+				editableDue={editableDue}
+				onChangeDue={(v) => { setEditableDue(v); setParentDirty(true); setDirty(true); }}
+				epicLabel={parent.epic || '未分類'}
+				totalHours={calculateParentTaskTotalHours}
+			/>
+
+			<TicketDetailProgress percentage={currentProgress} />
+
+			{/* Subtickets ラベルと追加ボタン */}
+			<div className="mt-4 flex items-center justify-between">
+				<div className="text-[11px] text-neutral-600">Subtickets</div>
+				{!addingSub && (
+					<button
+						type="button"
+						onClick={() => setAddingSub(true)}
+						className="inline-flex items-center gap-1 px-2 py-1 text-xs text-[#00b393] hover:bg-[#00b393]/10 border border-[#00b393] rounded"
+					>
+						<IconPlus className="w-3 h-3" />
+						Add Subticket
+					</button>
 				)}
-				<button onClick={onToggleFullscreen} className="h-7 w-7 inline-flex items-center justify-center rounded hover:bg-neutral-50 text-neutral-600" aria-label="Toggle fullscreen">
-					<span className="[&_svg]:w-4 [&_svg]:h-4">{isFullscreen ? <svg xmlns='http://www.w3.org/2000/svg' className='w-4 h-4' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><polyline points='15 9 15 3 21 3'/><polyline points='9 15 3 15 3 21'/><polyline points='21 9 21 3 15 3'/><polyline points='3 21 9 21 9 15'/></svg> : <svg xmlns='http://www.w3.org/2000/svg' className='w-4 h-4' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><polyline points='15 3 21 3 21 9'/><polyline points='9 21 3 21 3 15'/><polyline points='21 15 21 21 15 21'/><polyline points='3 9 3 3 9 3'/></svg>}</span>
-				</button>
-				<button onClick={onClose} className="h-7 w-7 inline-flex items-center justify-center rounded hover:bg-neutral-50 text-neutral-600" aria-label="Close">
-					<IconClose />
-				</button>
 			</div>
 
-			{/* Epic name */}
-			<div className="mt-0">
-				<div className="flex items-center gap-2">
-					<span className="inline-flex items-center text-[12px] px-2 py-[2px] rounded-full border border-neutral-300 text-neutral-700 bg-white">
-						{parent.epic || '未分類'}
-					</span>
-					{parentHours > 0 && (
-						<span className="shrink-0 text-[10px] px-1.5 py-[1px] rounded-full bg-indigo-700 text-white">{parentHours}h</span>
-					)}
-				</div>
-			</div>
+			{/* サブチケット追加ボタンとサブチケットリストの間の余白 */}
+			<div className="mt-2"></div>
 
-			{/* Inline editable title */}
-			<div className="mt-3">
-				<div
-					role="textbox"
-					contentEditable
-					suppressContentEditableWarning
-					onInput={(e) => { setEditableTitle((e.target as HTMLElement).innerText); setDirty(true); }}
-					ref={titleRef}
-					className="outline-none focus:outline-none text-[20px] leading-7 font-semibold text-neutral-900"
-					aria-label="Title"
-				></div>
-			</div>
+			<SortableSubTasksContainer
+				parent={parent}
+				subtasks={subs}
+				openTodos={openTodos}
+				onToggleTodos={(subtaskId: number) => setOpenTodos((prev) => ({ ...prev, [subtaskId]: !prev[subtaskId] }))}
+				onToggleTodo={(subtaskId: number, todoId: number) => { 
+					const subIdx = subs.findIndex(s => s.id === subtaskId); 
+					if (subIdx !== -1) { 
+						toggleTodo(subs, subIdx, todoId, setSubs, setDirty); 
+						
+						// 進捗更新イベントを発火
+						const updatedSubs = [...subs];
+						const updatedSub = { ...updatedSubs[subIdx] };
+						const todoIdx = updatedSub.todos?.findIndex(t => t.id === todoId);
+						if (todoIdx !== undefined && todoIdx !== -1 && updatedSub.todos) {
+							updatedSub.todos[todoIdx] = { ...updatedSub.todos[todoIdx], done: !updatedSub.todos[todoIdx].done };
+							updatedSubs[subIdx] = updatedSub;
+							
+							// 進捗を計算
+							const totalTodos = updatedSubs.reduce((total, sub) => total + (sub.todos?.length || 0), 0);
+							const completedTodos = updatedSubs.reduce((total, sub) => total + (sub.todos?.filter(t => t.done).length || 0), 0);
+							const progress = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
+							
+							// カスタムイベントを発火
+							window.dispatchEvent(new CustomEvent('todoProgressUpdated', {
+								detail: {
+									todoId,
+									subtaskId,
+									parentId: parent.id,
+									progress
+								}
+							}));
+						}
+					} 
+				}}
+				onEditSub={(subtaskId: number) => { 
+					startEditingSub(subs, subtaskId, setEditingSub, setEditingSubTitle, setEditingTodoTitles, setEditingTodoEstimates); 
+				}}
+				onSaveSub={(subtaskId: number) => { 
+					saveEditingSub(subs, subtaskId, editingSubTitle, editingTodoTitles, editingTodoEstimates, setSubs, setEditingSub, setDirty); 
+				}}
+				onCancelSub={(subtaskId: number) => { 
+					cancelEditingSub(subs, subtaskId, setEditingSub, setEditingSubTitle, setEditingTodoTitles, setEditingTodoEstimates); 
+				}}
+				onDeleteTodo={(subtaskId: number, todoId: number) => { 
+					const subIdx = subs.findIndex(s => s.id === subtaskId); 
+					if (subIdx !== -1) { 
+						deleteTodo(subs, subIdx, todoId, setSubs, setDirty); 
+					} 
+				}}
+				onReorderSubtasks={(newOrder) => reorderSubtasks(newOrder, subtasks, setSubs)}
+				onReorderTodos={(subtaskId, newOrder) => reorderTodos(subtaskId, newOrder, subtasks, setSubs)}
+				editingSub={editingSub}
+				editingSubTitle={editingSubTitle}
+				editingTodoTitles={editingTodoTitles}
+				editingTodoEstimates={editingTodoEstimates}
+				onSubTitleChange={(subtaskId: number, title: string) => { 
+					setEditingSubTitle(prev => ({ ...prev, [subtaskId]: title })); 
+				}}
+				onTodoTitleChange={(subtaskId: number, todoId: number, title: string) => { 
+					setEditingTodoTitles(prev => ({ ...prev, [`${subtaskId}-${todoId}`]: title })); 
+				}}
+				onTodoEstimateChange={(subtaskId: number, todoId: number, estimate: string) => { 
+					setEditingTodoEstimates(prev => ({ ...prev, [`${subtaskId}-${todoId}`]: estimate })); 
+				}}
+				onAddTodo={(subtaskId: number) => { 
+					const subIdx = subs.findIndex(s => s.id === subtaskId); 
+					if (subIdx !== -1) { 
+						setAddingTodo(prev => ({ ...prev, [subtaskId]: true })); 
+					} 
+				}}
+				onSaveNewTodo={(subtaskId: number) => { 
+					const subIdx = subs.findIndex(s => s.id === subtaskId); 
+					if (subIdx !== -1) { 
+						addTodo(subs, subIdx, newTodoTitle, newTodoEstimate, setSubs, setAddingTodo, setNewTodoTitle, setNewTodoEstimate, setDirty); 
+					} 
+				}}
+				onCancelNewTodo={(subtaskId: number) => { 
+					setAddingTodo(prev => ({ ...prev, [subtaskId]: false })); 
+					setNewTodoTitle(prev => ({ ...prev, [subtaskId]: '' })); 
+					setNewTodoEstimate(prev => ({ ...prev, [subtaskId]: '' })); 
+				}}
+				onNewTodoTitleChange={(subtaskId: number, title: string) => { 
+					setNewTodoTitle(prev => ({ ...prev, [subtaskId]: title })); 
+				}}
+				onNewTodoEstimateChange={(subtaskId: number, estimate: string) => { 
+					setNewTodoEstimate(prev => ({ ...prev, [subtaskId]: estimate })); 
+				}}
+				addingTodo={addingTodo}
+				newTodoTitle={newTodoTitle}
+				newTodoEstimate={newTodoEstimate}
+				// コメント関連のprops（デフォルト値を設定）
+				subtaskComments={subtaskComments || {}}
+				onAddSubtaskComment={handleAddSubtaskComment}
+				onDeleteSubtaskComment={handleDeleteSubtaskComment}
+				todoComments={todoComments || {}}
+				onAddTodoComment={handleAddTodoComment}
+				onDeleteTodoComment={handleDeleteTodoComment}
+			/>
 
-			{/* Inline editable description */}
-			<div className="mt-2">
-				<div
-					role="textbox"
-					contentEditable
-					suppressContentEditableWarning
-					onInput={(e) => { setEditableDesc((e.target as HTMLElement).innerText); setDirty(true); }}
-					ref={descRef}
-					className="outline-none focus:outline-none text-[13px] leading-6 text-neutral-700 whitespace-pre-wrap"
-					aria-label="Description"
-				></div>
-			</div>
-
-			{/* Due (minimal date picker) */}
-			<div className="mt-4">
-				<div className="text-[11px] text-neutral-600 mb-1">Due</div>
-				<input
-					type="date"
-					value={editableDue}
-					onChange={(e) => { setEditableDue(e.target.value); setDirty(true); }}
-					className="border border-neutral-300 rounded px-2 py-1 text-[13px] w-[160px]"
-				/>
-			</div>
-
-			{/* Progress (auto) */}
-			<div className="mt-4">
-				<div className="text-[11px] text-neutral-600 mb-1">Progress</div>
-				<ProgressBar percentage={computedProgress} />
-				<div className="mt-1 text-[12px] text-neutral-700">{computedProgress}%</div>
-			</div>
-
-			{/* Sub tickets */}
-			<div className="mt-5">
-				<div className="text-[11px] text-neutral-600 mb-2">Sub tickets</div>
-				<div className="space-y-2">
-					{subs.map((s, idx) => (
-						<div key={s.id} className="border border-neutral-200 rounded">
-							<div className="flex items-center justify-between gap-3 px-2 py-2">
-								<div className="flex items-center gap-2 min-w-0">
-									<StatusDot completed={!!s.done} variant="todo" onClick={() => { toggleSub(idx)(); setDirty(true); }} />
-									<div className="min-w-0">
-										<div className="flex items-center gap-1 min-w-0">
-											<div className="text-[13px] text-neutral-900 truncate">{s.title}</div>
-											{Array.isArray(s.todos) && s.todos.length > 0 && (
-												<button type="button" onClick={() => setOpenTodos((prev) => ({ ...prev, [s.id]: !prev[s.id] }))} className="h-5 w-5 inline-flex items-center justify-center rounded hover:bg-neutral-50 text-neutral-600 shrink-0" aria-label="Toggle subtodos">
-													<IconChevronDown className={`w-3.5 h-3.5 transition-transform ${openTodos[s.id] ? 'rotate-180' : ''}`} />
-												</button>
-											)}
-											{computeSubHours(s) > 0 && (
-												<span className="ml-1 shrink-0 text-[10px] px-1.5 py-[1px] rounded-full bg-pink-500 text-white">{computeSubHours(s)}h</span>
-											)}
-										</div>
-									</div>
-								</div>
-								<div className="shrink-0">
-									<input
-										type="date"
-										value={s.due || ''}
-										onChange={(e) => { const v = e.target.value; setSubs((prev) => prev.map((sub, i) => (i === idx ? { ...sub, due: v } : sub))); setDirty(true); }}
-										className="border border-neutral-300 rounded px-1.5 py-[2px] text-[11px] w-[140px]"
-									/>
-								</div>
-							</div>
-							{openTodos[s.id] && subTodoBlock(s, idx)}
-						</div>
-					))}
-					{/* Add sub-ticket row */}
-					<div className="pt-2">
-						{!addingSub ? (
-							<div className="flex items-center justify-start">
-								<button onClick={() => setAddingSub(true)} className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1.5 rounded border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-700">
-									<span className="[&_svg]:w-3.5 [&_svg]:h-3.5"><IconPlus /></span>
-									<span>Sub ticket</span>
-								</button>
-							</div>
-						) : (
-							<div className="border border-dashed border-neutral-300 rounded px-2 py-2">
-								<div className="flex items-center justify-between gap-2">
-									<input value={newSubTitle} onChange={(e) => { setNewSubTitle(e.target.value); setDirty(true); }} placeholder="Sub ticket title" className="flex-1 min-w-0 border border-neutral-300 rounded px-2 py-1 text-[12px]" />
-									<div className="flex items-center gap-2">
-										<input type="date" value={newSubDue} onChange={(e) => { setNewSubDue(e.target.value); setDirty(true); }} className="border border-neutral-300 rounded px-2 py-1 text-[12px] w-[150px]" />
-										{/* removed estimate input */}
-										<button onClick={() => { setAddingSub(false); setNewSubTitle(''); setNewSubDue(''); /* removed setNewSubEstimate(''); */ }} className="px-2 py-1 text-[12px] rounded border border-neutral-300 text-neutral-700">Cancel</button>
-										<button onClick={createSub} className="px-2 py-1 text-[12px] rounded bg-[#00b393] text-white">Add</button>
-									</div>
-								</div>
-							</div>
-						)}
-					</div>
-				</div>
-			</div>
-		</div>
-	);
-
-	function subTodoBlock(s: SubTaskWithLocal, idx: number) {
-		if (!Array.isArray(s.todos) || s.todos.length === 0) return (
-			<div className="border-t border-neutral-200 pl-6 pr-2 py-2">
-				<div className="flex items-center justify-start">
-					{renderAddTodoButton(s.id, idx)}
-				</div>
-			</div>
- 		);
-		return (
-			<div className="border-t border-neutral-200 pl-6 pr-2 py-2">
-				<ul className="space-y-1">
-					{s.todos.map((t) => (
-						<li key={t.id}>
-							<div className="flex items-center justify-between gap-3">
-								<div className="flex items-center gap-2 min-w-0">
-									<StatusDot completed={!!t.done} variant="todo" onClick={() => { toggleTodo(idx, t.id)(); setDirty(true); }} />
-									<span className="text-[12px] text-neutral-800 truncate">{t.title}</span>
-								</div>
-								<div className="shrink-0">
-									<div className="flex items-center">
-										<input type="number" min={0} step={0.5} value={t.estimateHours ?? ''} onChange={(e) => { updateTodoEstimate(idx, t.id, e.target.value); setDirty(true); }} className="w-12 focus:w-16 transition-all border border-neutral-300 rounded px-1.5 py-[2px] text-[11px] text-right" />
-										<span className="ml-1 text-[11px] text-neutral-500">h</span>
-									</div>
-								</div>
-							</div>
-						</li>
-					))}
-				</ul>
-				<div className="pt-2 flex items-center justify-start">
-					{renderAddTodoButton(s.id, idx)}
-				</div>
-			</div>
-		);
-	}
-
-	function renderAddTodoButton(subId: number, subIdx: number) {
-		const isAdding = !!addingTodo[subId];
-		if (!isAdding) {
-			return (
-				<button onClick={() => setAddingTodo((p) => ({ ...p, [subId]: true }))} className="inline-flex items-center gap-1 text-[12px] px-2 py-1 rounded border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-700">
-					<span className="[&_svg]:w-3.5 [&_svg]:h-3.5"><IconPlus /></span>
-					<span>Todo</span>
-				</button>
-			);
-		}
-		return (
-			<div className="flex items-center gap-2">
-				<input value={newTodoTitle[subId] || ''} onChange={(e) => { setNewTodoTitle((p) => ({ ...p, [subId]: e.target.value })); setDirty(true); }} placeholder="Todo title" className="flex-1 min-w-0 border border-neutral-300 rounded px-2 py-1 text-[12px]" />
-				<div className="flex items-center">
-					<input type="number" min={0} step={0.5} value={newTodoEstimate[subId] || ''} onChange={(e) => { setNewTodoEstimate((p) => ({ ...p, [subId]: e.target.value })); setDirty(true); }} className="w-12 focus:w-16 transition-all border border-neutral-300 rounded px-1.5 py-[2px] text-[11px] text-right" />
-					<span className="ml-1 text-[11px] text-neutral-500">h</span>
-				</div>
-				<button onClick={() => { setAddingTodo((p) => ({ ...p, [subId]: false })); setNewTodoTitle((p) => ({ ...p, [subId]: '' })); setNewTodoEstimate((p) => ({ ...p, [subId]: '' })); }} className="px-2 py-1 text-[12px] rounded border border-neutral-300 text-neutral-700">Cancel</button>
-				<button onClick={() => addTodo(subIdx, subId)} className="px-2 py-1 text-[12px] rounded bg-[#00b393] text-white">Add</button>
-			</div>
-		);
-	}
-
-	function toggleSub(idx: number) {
-		return () => setSubs((prev) => prev.map((s, i) => (i === idx ? { ...s, done: !s.done } : s)));
-	}
-	function toggleTodo(subIdx: number, todoId: number) {
-		return () =>
-			setSubs((prev) =>
-				prev.map((s, i) =>
-					i === subIdx ? { ...s, todos: (s.todos || []).map((t) => (t.id === todoId ? { ...t, done: !t.done } : t)) } : s
-				)
-			);
-	}
-	function updateTodoEstimate(idx: number, todoId: number, value: string) {
-		setSubs((prev) =>
-			prev.map((s, i) =>
-				i === idx
-					? {
-							...s,
-							todos: (s.todos || []).map((t) => (t.id === todoId ? { ...t, estimateHours: value === '' ? undefined : Number(value) } : t)),
-					  }
-					: s
-			)
-		);
-	}
-
-	function createSub() {
-		const title = newSubTitle.trim();
-		if (!title) return;
-		const newId = Date.now();
-		setSubs((prev) => [
-			...prev,
-			{
-				id: newId,
-				title,
-				user: parent.user,
-				due: newSubDue || undefined,
-				done: false,
-				description: '',
-				// removed: estimateHours on creation
-				todos: [],
-			},
-		]);
-		setOpenTodos((p) => ({ ...p, [newId]: true }));
+			<AddSubticketRow
+				adding={addingSub}
+				title={newSubTitle}
+				onTitleChange={setNewSubTitle}
+				onAddClick={() => createSub(parent, newSubTitle, newSubDue, setSubs, setOpenTodos, setAddingSub, setNewSubTitle, setNewSubDue, setDirty)}
+				onCancelClick={() => { 
 		setAddingSub(false);
 		setNewSubTitle('');
 		setNewSubDue('');
-		// removed: setNewSubEstimate('');
-		setDirty(true);
-	}
-
-	function addTodo(subIdx: number, subId: number) {
-		const title = (newTodoTitle[subId] || '').trim();
-		if (!title) return;
-		const id = Date.now();
-		const estStr = newTodoEstimate[subId] || '';
-		setSubs((prev) =>
-			prev.map((s, i) =>
-				i === subIdx
-					? { ...s, todos: [...(s.todos || []), { id, title, estimateHours: estStr ? Number(estStr) : undefined, done: false }] }
-					: s
-			)
-		);
-		setAddingTodo((p) => ({ ...p, [subId]: false }));
-		setNewTodoTitle((p) => ({ ...p, [subId]: '' }));
-		setNewTodoEstimate((p) => ({ ...p, [subId]: '' }));
-		setDirty(true);
-	}
-}
-
-function calcProgress(children: SubTask[]): number {
-	if (!children || children.length === 0) return 0;
-	const completed = children.filter((c) => c.done).length;
-	return Math.round((completed / children.length) * 100);
-}
-
-type SubTaskWithLocal = SubTask & { todos?: SubTodo[] }; 
+				}}
+				onOpen={() => setAddingSub(true)}
+			/>
+		</div>
+	);
+} 

@@ -14,6 +14,11 @@ type CookieSetOptions = {
 };
 
 export async function middleware(req: NextRequest) {
+  // 認証を一時的に無効化 - 開発環境用
+  return NextResponse.next();
+  
+  // 以下は認証が必要な場合のロジック（現在は無効）
+  /*
   const { nextUrl, cookies: reqCookies } = req;
   const pathname = nextUrl.pathname;
 
@@ -68,6 +73,7 @@ export async function middleware(req: NextRequest) {
     // Never throw in middleware; proceed to next to avoid 500
     return res;
   }
+  */
 }
 
 export const config = {

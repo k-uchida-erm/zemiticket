@@ -14,6 +14,11 @@ export default function OthersActiveRow({ user, tickets }: OthersActiveRowProps)
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const toggle = useCallback((id: number) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] })), []);
 
+  // ticketsがundefinedまたは空配列の場合は何も表示しない
+  if (!tickets || tickets.length === 0) {
+    return null;
+  }
+
   return (
     <div className="flex items-start gap-3">
       <div className="pt-1">
