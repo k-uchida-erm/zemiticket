@@ -73,7 +73,7 @@ export function transformTaskData(parentTask: ParentTask) {
 			...parentTask,
 			user: parentTask.user || 'Unknown',
 			estimateHours: totalEstimateHours,
-			progressPercentage: (parentTask as any).progress_percentage || 0,  // progress_percentageをprogressPercentageに変換
+			progressPercentage: (parentTask as { progress_percentage?: number }).progress_percentage || 0,  // progress_percentageをprogressPercentageに変換
 			sub_tasks: processedSubTasks
 		},
 		children: processedSubTasks

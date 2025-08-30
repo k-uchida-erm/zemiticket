@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import TicketCreateForm from '../../molecules/TicketCreateForm';
 import TicketDetailPanel from '../TicketDetailPanel';
+import type { ParentTask } from '../../../types';
 
 interface TicketDetailOverlayProps {
-	selected: any;
+	selected: ParentTask | null;
 	creatingEpic: string | null;
 	onClose: () => void;
-	ticketsData: any[];
+	ticketsData: Array<{ list: Array<{ parent: ParentTask; children: ParentTask[] }> }>;
 }
 
 export default function TicketDetailOverlay({ 

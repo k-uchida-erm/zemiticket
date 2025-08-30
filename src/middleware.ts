@@ -1,17 +1,4 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-
-const PUBLIC_PATHS = new Set<string>(['/auth/login', '/auth/callback', '/api/supabase-health', '/favicon.ico']);
-
-type CookieSetOptions = {
-  domain?: string;
-  expires?: Date | number;
-  httpOnly?: boolean;
-  maxAge?: number;
-  path?: string;
-  secure?: boolean;
-  sameSite?: 'lax' | 'strict' | 'none';
-};
 
 export async function middleware(req: NextRequest) {
   // 認証を一時的に無効化 - 開発環境用
