@@ -66,7 +66,7 @@ export default function TicketDetailOverlay({
 								parent={selected}
 								subtasks={group?.children || []}
 								onClose={onClose}
-								onSave={() => onClose()}
+								_onSave={() => onClose()}
 								onToggleFullscreen={handleToggleFullscreen}
 								isFullscreen={isFullscreen}
 							/>

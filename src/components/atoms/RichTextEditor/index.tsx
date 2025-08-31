@@ -1,7 +1,7 @@
 'use client';
 
 import Image from '@tiptap/extension-image';
-import type { Node as PMNode } from '@tiptap/pm/model';
+import type { ProseMirrorNode } from '@tiptap/pm/model';
 import type { EditorView, NodeView } from '@tiptap/pm/view';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -30,7 +30,7 @@ class ResizableImageView implements NodeView {
 	private startX: number = 0;
 	private startWidth: number = 0;
 
-	constructor(node: PMNode, view: EditorView, getPos: boolean | (() => number)) {
+	constructor(node: ProseMirrorNode, view: EditorView, getPos: boolean | (() => number)) {
 		this.view = view;
 		this.getPos = (getPos as () => number);
 
@@ -111,7 +111,7 @@ class ResizableImageView implements NodeView {
 		this.view.dispatch(tr);
 	};
 
-	public update(node: PMNode): boolean {
+	public update(node: ProseMirrorNode): boolean {
 		if (node.type.name !== 'image') return false;
 		if (typeof node.attrs.width === 'number') {
 			this.imgEl.style.width = `${node.attrs.width}px`;
@@ -140,7 +140,6 @@ class ResizableImageView implements NodeView {
 const ResizableImage = Image.extend({
 	addAttributes() {
 		return {
-			...this.parent?.(),
 			width: {
 				default: null,
 				parseHTML: (element: HTMLElement): number | null => {
@@ -156,7 +155,7 @@ const ResizableImage = Image.extend({
 		};
 	},
 	addNodeView() {
-		return ({ node, view, getPos }) => new ResizableImageView(node as unknown as PMNode, view as EditorView, getPos);
+		return ({ node, view, getPos }: { node: ProseMirrorNode; view: EditorView; getPos: boolean | (() => number) }) => new ResizableImageView(node as ProseMirrorNode, view as EditorView, getPos);
 	},
 });
 

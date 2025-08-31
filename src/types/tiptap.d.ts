@@ -74,8 +74,15 @@ declare module '@tiptap/extension-text-align' {
 
 // ProseMirror minimal types used in NodeView
 declare module '@tiptap/pm/model' {
+	export interface ImageNodeAttrs {
+		width?: number;
+		src?: string;
+		[key: string]: unknown;
+	}
+
 	export interface ProseMirrorNode {
-		attrs: Record<string, unknown>;
+		attrs: ImageNodeAttrs;
+		type: { name: string };
 	}
 }
 

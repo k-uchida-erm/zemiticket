@@ -83,6 +83,7 @@ export default function SortableSubTask({
 	onTodoEstimateChange,
 	onDeleteTodo,
 	onReorderTodos,
+	onSubTitleChange,
 }: SortableSubTaskProps) {
 	// 状態管理の変数を先に宣言
 	const [editingSub, _setEditingSub] = useState<Record<string, boolean>>({});
@@ -474,7 +475,6 @@ export default function SortableSubTask({
 							showAddOptions={showAddOptions}
 							onToggleAddOptions={toggleAddOptions}
 							todoMemos={todoMemos}
-							todoFiles={_todoFiles}
 							expandedMemos={expandedMemos}
 							editingMemos={editingMemos}
 							onMemoContentChange={handleMemoContentChange}
@@ -486,8 +486,6 @@ export default function SortableSubTask({
 							onSaveMemo={saveMemo}
 							onCancelMemoEdit={cancelMemoEdit}
 							onDeleteMemo={deleteMemo}
-							onFileDelete={handleFileDelete}
-							formatFileSize={formatFileSize}
 						/>
 					)}
 

@@ -42,8 +42,7 @@ interface SortableTodosContainerProps {
 	showAddOptions?: Record<string, boolean>;
 	onToggleAddOptions?: (todoId: string) => void;
 	// メモ・ファイル表示のためのprops
-	todoMemos?: Record<string, { content: string; images: File[] }>;
-	todoFiles?: Record<string, File[]>;
+	todoMemos?: Record<string, { content: string; html: string; images: File[] }>;
 	expandedMemos?: Record<string, boolean>;
 	editingMemos?: Record<string, boolean>;
 	onMemoContentChange?: (todoId: string, content: string) => void;
@@ -55,8 +54,6 @@ interface SortableTodosContainerProps {
 	onSaveMemo?: (todoId: string) => void;
 	onCancelMemoEdit?: (todoId: string) => void;
 	onDeleteMemo?: (todoId: string) => void;
-	onFileDelete?: (todoId: string, fileIndex: number) => void;
-	formatFileSize?: (bytes: number) => string;
 }
 
 export default function SortableTodosContainer({
@@ -76,7 +73,6 @@ export default function SortableTodosContainer({
 	onToggleAddOptions,
 	// メモ・ファイル表示のためのprops
 	todoMemos,
-	todoFiles,
 	expandedMemos,
 	editingMemos,
 	onMemoContentChange,
@@ -88,8 +84,6 @@ export default function SortableTodosContainer({
 	onSaveMemo,
 	onCancelMemoEdit,
 	onDeleteMemo,
-	onFileDelete,
-	formatFileSize,
 }: SortableTodosContainerProps) {
 	const sensors = useSensors(
 		useSensor(PointerSensor),
@@ -206,13 +200,6 @@ export default function SortableTodosContainer({
 														onContentChange={(id, content) => onMemoContentChange?.(id, content)}
 														onHtmlChange={(id, html) => onMemoHtmlChange?.(id, html)}
 														onImagePaste={onImagePaste}
-														onImageDelete={(id, index) => onImageDelete?.(id, index)}
-														onSave={(id) => onSaveMemo?.(id)}
-														onCancel={(id) => onCancelMemoEdit?.(id)}
-														onDelete={(id) => onDeleteMemo?.(id)}
-														todoFiles={todoFiles}
-														onFileDelete={(id, fileIndex) => onFileDelete?.(id, fileIndex)}
-														formatFileSize={formatFileSize}
 													/>
 
 													{/* 保存・キャンセルボタン（右下） */}
