@@ -1,2 +1,2 @@
 declare module '@supabase/ssr';
-declare module '@supabase/supabase-js'; 
+declare module '@supabase/supabase-js';

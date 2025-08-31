@@ -1,0 +1,155 @@
+# zemiticket プロジェクト - Cursor AI ルール
+
+## 🚫 禁止事項
+
+### 型定義
+- **`any`型の使用は絶対禁止**
+- `unknown`型も可能な限り避ける
+- 型安全性を最優先とする
+
+### コーディング規約
+- 未使用のimport、変数、関数は削除する
+- コンソールログは本番環境では削除する
+- ハードコーディングされた値は定数として定義する
+
+## ✅ 必須事項
+
+### TypeScript
+- すべての関数、変数、プロパティに明示的な型を定義する
+- インターフェースとタイプエイリアスを積極的に使用する
+- ユニオン型とリテラル型を活用する
+
+### エラーハンドリング
+- API呼び出しには必ずtry-catchブロックを実装する
+- エラーメッセージは具体的で分かりやすくする
+- ユーザーフレンドリーなエラー表示を実装する
+
+## 🏗️ アーキテクチャ規約
+
+### コンポーネント階層
+```
+src/components/
+├── atoms/          # 最小単位のコンポーネント（Button, Input等）
+├── molecules/      # atomsを組み合わせたコンポーネント（Card, Form等）
+├── organisms/      # 複雑な機能を持つコンポーネント（Header, Sidebar等）
+└── templates/      # ページレイアウト（AppShell等）
+```
+
+### ファイル構造
+- コンポーネントは`src/components/`配下に配置
+- APIルートは`src/app/api/`配下に配置
+- 型定義は`src/types/index.ts`に集約
+- ユーティリティ関数は`src/lib/utils/`配下に配置
+- カスタムフックは`src/lib/hooks/`配下に配置
+
+### 命名規則
+- コンポーネント名: PascalCase（例: `ParentTicketCard`）
+- ファイル名: PascalCase（例: `index.tsx`）
+- 関数名: camelCase（例: `handleSubmit`）
+- 定数名: UPPER_SNAKE_CASE（例: `MAX_TICKETS`）
+- インターフェース名: PascalCase（例: `TicketProps`）
+
+## 🔧 技術スタック
+
+### フレームワーク
+- Next.js 15（App Router使用）
+- React 19（Server Components対応）
+- TypeScript 5
+
+### UI/UX
+- Tailwind CSS 4
+- レスポンシブデザイン必須
+- アクセシビリティ対応必須
+
+### データベース
+- Supabase（PostgreSQL）
+- 型安全なクエリ実装
+- 適切なインデックス設計
+
+## 📝 コーディングパターン
+
+### APIルート
+```typescript
+// ✅ 正しい例
+export async function GET() {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.from('table').select('*');
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ data });
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+```
+
+### コンポーネント
+```typescript
+// ✅ 正しい例
+interface ComponentProps {
+  title: string;
+  onAction: (id: string) => void;
+  isActive?: boolean;
+}
+
+export default function Component({ title, onAction, isActive = false }: ComponentProps) {
+  // 実装
+}
+```
+
+### カスタムフック
+```typescript
+// ✅ 正しい例
+export function useCustomHook(dependency: string) {
+  const [state, setState] = useState<string>('');
+
+  useEffect(() => {
+    // 副作用の実装
+  }, [dependency]);
+
+  return { state, setState };
+}
+```
+
+## 🎯 品質基準
+
+### パフォーマンス
+- 不要な再レンダリングを避ける
+- `useMemo`、`useCallback`を適切に使用
+- 画像の最適化（Next.js Image使用）
+
+### セキュリティ
+- ユーザー入力のバリデーション
+- SQLインジェクション対策
+- XSS対策
+
+### テスト
+- 重要なビジネスロジックにはテストを実装
+- コンポーネントの動作確認
+- APIエンドポイントの動作確認
+
+## 🔍 コードレビュー
+
+### チェック項目
+- [ ] TypeScriptエラーがない
+- [ ] ESLintエラーがない
+- [ ] 型安全性が保たれている
+- [ ] エラーハンドリングが適切
+- [ ] パフォーマンスが考慮されている
+- [ ] アクセシビリティが考慮されている
+
+## 📚 参考資料
+
+- Next.js 15 ドキュメント
+- React 19 ドキュメント
+- TypeScript ハンドブック
+- Tailwind CSS ドキュメント
+- Supabase ドキュメント
+
+---
+
+**重要**: このルールに従わないコードは絶対に作成しないでください。型安全性とコード品質を最優先としてください。

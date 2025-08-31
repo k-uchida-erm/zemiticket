@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import SubHeader from '../../molecules/SubHeader';
 import TicketKanban from '../TicketKanban';
@@ -12,48 +12,61 @@ interface TicketContentProps {
 	isLeftPanelCollapsed: boolean;
 	onToggleLeftPanel: () => void;
 	onTicketActivate?: (ticketId: string, isActive: boolean) => void;
-	onSubtaskStatusUpdate?: (subtaskId: string, status: 'todo' | 'active' | 'completed') => void;
+	onSubtaskStatusUpdate?: (
+		subtaskId: string,
+		status: 'todo' | 'active' | 'completed'
+	) => void;
 	onTodoToggle?: (subtaskId: string, todoId: string, done: boolean) => void;
 }
 
-export default function TicketContent({ rightView, onViewChange, kanbanTickets, isLeftPanelCollapsed, onToggleLeftPanel, onTicketActivate, onSubtaskStatusUpdate, onTodoToggle }: TicketContentProps) {
+export default function TicketContent({
+	rightView,
+	onViewChange,
+	kanbanTickets,
+	isLeftPanelCollapsed,
+	onToggleLeftPanel,
+	onTicketActivate,
+	onSubtaskStatusUpdate,
+	onTodoToggle,
+}: TicketContentProps) {
 	return (
-		<div className="w-full h-full flex flex-col">
-			<div className="px-3 py-3 flex-shrink-0 pt-5">
-				<div className="flex items-center gap-4">
+		<div className='w-full h-full flex flex-col'>
+			<div className='px-3 py-3 flex-shrink-0 pt-5'>
+				<div className='flex items-center gap-4'>
 					{/* 左パネルトグルボタン */}
 					<ToggleButton
 						isCollapsed={isLeftPanelCollapsed}
 						onToggle={onToggleLeftPanel}
-						title={isLeftPanelCollapsed ? "左パネルを展開" : "左パネルを収納"}
+						title={isLeftPanelCollapsed ? '左パネルを展開' : '左パネルを収納'}
 					/>
-					
+
 					{/* メニューバー */}
-					<SubHeader 
+					<SubHeader
 						items={[
-							{ key: 'kanban', label: 'Active tickets' }, 
-							{ key: 'timeline', label: 'Timeline' }
-						]} 
-						activeKey={rightView} 
-						onChange={(k) => onViewChange(k as 'kanban' | 'timeline')} 
+							{ key: 'kanban', label: 'Active tickets' },
+							{ key: 'timeline', label: 'Timeline' },
+						]}
+						activeKey={rightView}
+						onChange={k => onViewChange(k as 'kanban' | 'timeline')}
 					/>
 				</div>
 			</div>
-			<div className="flex-1 overflow-y-auto pl-3 pr-3 pb-16">
+			<div className='flex-1 overflow-y-auto pl-3 pr-3 pb-16'>
 				{rightView === 'kanban' ? (
-					<TicketKanban 
-						tickets={kanbanTickets} 
-						onTicketActivate={onTicketActivate} 
+					<TicketKanban
+						tickets={kanbanTickets}
+						onTicketActivate={onTicketActivate}
 						onSubtaskStatusUpdate={onSubtaskStatusUpdate}
 						onTodoToggle={onTodoToggle}
 					/>
 				) : (
 					<section>
-						<div className="text-[13px] text-neutral-600">Timeline coming soon...</div>
+						<div className='text-[13px] text-neutral-600'>
+							Timeline coming soon...
+						</div>
 					</section>
 				)}
 			</div>
 		</div>
 	);
 }
- 

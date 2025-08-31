@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import KanbanSubtask from '../KanbanSubtask';
 import type { SubTask } from '../../../../types';
+import KanbanSubtask from '../KanbanSubtask';
 
 interface KanbanColumnProps {
 	status: 'todo' | 'active' | 'completed';
@@ -11,7 +11,10 @@ interface KanbanColumnProps {
 	onToggleSubtask: (subtaskId: string | number) => void;
 	onDragOver: (e: React.DragEvent) => void;
 	onDrop: (e: React.DragEvent) => void;
-	onSubtaskStatusUpdate?: (subtaskId: string, status: 'todo' | 'active' | 'completed') => void;
+	onSubtaskStatusUpdate?: (
+		subtaskId: string,
+		status: 'todo' | 'active' | 'completed'
+	) => void;
 	onTodoToggle?: (subtaskId: string, todoId: string, done: boolean) => void;
 }
 
@@ -23,7 +26,7 @@ const statusConfig = {
 		borderColor: 'border-neutral-200',
 		dotColor: 'bg-neutral-400',
 		countBgColor: 'bg-neutral-200',
-		countTextColor: 'text-neutral-600'
+		countTextColor: 'text-neutral-600',
 	},
 	active: {
 		label: 'Active',
@@ -32,7 +35,7 @@ const statusConfig = {
 		borderColor: 'border-orange-200',
 		dotColor: 'bg-orange-500',
 		countBgColor: 'bg-orange-500/20',
-		countTextColor: 'text-orange-600'
+		countTextColor: 'text-orange-600',
 	},
 	completed: {
 		label: 'Completed',
@@ -41,8 +44,8 @@ const statusConfig = {
 		borderColor: 'border-[#00b393]/20',
 		dotColor: 'bg-[#00b393]',
 		countBgColor: 'bg-[#00b393]/20',
-		countTextColor: 'text-[#00b393]'
-	}
+		countTextColor: 'text-[#00b393]',
+	},
 };
 
 export default function KanbanColumn({
@@ -54,10 +57,14 @@ export default function KanbanColumn({
 	onDragOver,
 	onDrop,
 	onSubtaskStatusUpdate,
-	onTodoToggle
+	onTodoToggle,
 }: KanbanColumnProps) {
 	const config = statusConfig[status];
-	const filteredSubtasks = subtasks.filter(s => s.status === status);
+	const filteredSubtasks = subtasks
+		.filter(s => s.status === status)
+		.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+	// デバッグ: ソート順を確認
 
 	return (
 		<div
@@ -65,15 +72,17 @@ export default function KanbanColumn({
 			onDragOver={onDragOver}
 			onDrop={onDrop}
 		>
-			<div className="flex items-center gap-2 mb-2">
+			<div className='flex items-center gap-2 mb-2'>
 				<div className={`w-2 h-2 ${config.dotColor} rounded-full`}></div>
-				<h5 className="text-xs font-medium text-neutral-600">{config.label}</h5>
-				<span className={`text-xs ${config.countBgColor} ${config.countTextColor} px-1.5 py-0.5 rounded-full`}>
+				<h5 className='text-xs font-medium text-neutral-600'>{config.label}</h5>
+				<span
+					className={`text-xs ${config.countBgColor} ${config.countTextColor} px-1.5 py-0.5 rounded-full`}
+				>
 					{filteredSubtasks.length}
 				</span>
 			</div>
-			<div className="min-h-[100px] space-y-1">
-				{filteredSubtasks.map((subtask) => (
+			<div className='min-h-[100px] space-y-1'>
+				{filteredSubtasks.map(subtask => (
 					<KanbanSubtask
 						key={subtask.id}
 						subtask={subtask}
@@ -88,4 +97,4 @@ export default function KanbanColumn({
 			</div>
 		</div>
 	);
-} 
+}

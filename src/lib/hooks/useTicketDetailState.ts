@@ -1,52 +1,75 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { ParentTask, SubTask, SubTodo } from '../../types';
 
 type SubTaskWithLocal = SubTask & { todos?: SubTodo[] };
 
-export function useTicketDetailState(parent: ParentTask, subtasks: SubTask[]) {
+export function useTicketDetailState(
+	parent: ParentTask,
+	subtasks?: SubTask[]
+) {
 	// Basic state
-	const [editableTitle, setEditableTitle] = useState<string>(parent.title);
-	const [editableDesc, setEditableDesc] = useState<string>(parent.description || '');
-	const [editableDue, setEditableDue] = useState<string>(parent.due || '');
-	const [dirty, setDirty] = useState<boolean>(false);
-	const [currentProgress, setCurrentProgress] = useState<number>(0);
+	const [editableTitle, setEditableTitle] = useState(parent.title || '');
+	const [editableDesc, setEditableDesc] = useState(parent.description || '');
+	const [editableDue, setEditableDue] = useState(parent.due || '');
+	const [dirty, setDirty] = useState(false);
+	const [currentProgress, setCurrentProgress] = useState(0);
 
 	// Subtasks state
 	const [subs, setSubs] = useState<SubTaskWithLocal[]>(
-		(subtasks || []).map((c) => ({
-			...c,
-			todos: (c.todos || []).map((t) => ({ ...t })),
-		}))
+		(subtasks || [])
+			.map(c => ({
+				...c,
+				todos: (c.todos || []).map(t => ({ ...t })),
+			}))
+			.sort((a, b) => {
+				const orderA = a.sort_order || 0;
+				const orderB = b.sort_order || 0;
+				return orderA - orderB;
+			})
 	);
 
 	// UI state
-	const [openTodos, setOpenTodos] = useState<Record<string, boolean>>(() => {
-		const map: Record<string, boolean> = {};
-		for (const s of subtasks || []) map[s.id] = true;
-		return map;
-	});
+	const [openTodos, setOpenTodos] = useState<Record<string, boolean>>({});
 
 	// Adding states
-	const [addingSub, setAddingSub] = useState<boolean>(false);
-	const [newSubTitle, setNewSubTitle] = useState<string>('');
-	const [newSubDue, setNewSubDue] = useState<string>('');
-
+	const [addingSub, setAddingSub] = useState(false);
+	const [newSubTitle, setNewSubTitle] = useState('');
+	const [newSubDue, setNewSubDue] = useState('');
 	const [addingTodo, setAddingTodo] = useState<Record<string, boolean>>({});
 	const [newTodoTitle, setNewTodoTitle] = useState<Record<string, string>>({});
-	const [newTodoEstimate, setNewTodoEstimate] = useState<Record<string, string>>({});
+	const [newTodoEstimate, setNewTodoEstimate] = useState<
+		Record<string, string>
+	>({});
 
 	// Editing states
 	const [editingSub, setEditingSub] = useState<Record<string, boolean>>({});
-	const [editingSubTitle, setEditingSubTitle] = useState<Record<string, string>>({});
-	const [editingTodoTitles, setEditingTodoTitles] = useState<Record<string, Record<string, string>>>({});
-	const [editingTodoEstimates, setEditingTodoEstimates] = useState<Record<string, Record<string, string>>>({});
+	const [editingSubTitle, setEditingSubTitle] = useState<
+		Record<string, string>
+	>({});
+	const [editingTodoTitles, setEditingTodoTitles] = useState<
+		Record<string, Record<string, string>>
+	>({});
+	const [editingTodoEstimates, setEditingTodoEstimates] = useState<
+		Record<string, Record<string, string>>
+	>({});
 
 	// Initialize/reset when parent changes
 	useEffect(() => {
 		setEditableTitle(parent.title || '');
 		setEditableDesc(parent.description || '');
 		setEditableDue(parent.due || '');
-		setSubs((subtasks || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) })));
+		setSubs(
+			(subtasks || [])
+				.map(c => ({
+					...c,
+					todos: (c.todos || []).map(t => ({ ...t })),
+				}))
+				.sort((a, b) => {
+					const orderA = a.sort_order || 0;
+					const orderB = b.sort_order || 0;
+					return orderA - orderB;
+				})
+		);
 		setOpenTodos(() => {
 			const map: Record<string, boolean> = {};
 			for (const s of subtasks || []) map[s.id] = true;
@@ -59,12 +82,18 @@ export function useTicketDetailState(parent: ParentTask, subtasks: SubTask[]) {
 		setNewTodoTitle({});
 		setNewTodoEstimate({});
 		setDirty(false);
-	}, [parent.id, parent.title, parent.description, parent.due, subtasks]);
+	}, [parent.id, parent.title, parent.description, parent.due]);
 
 	// Recompute progress whenever subs change
 	useEffect(() => {
-		let total = 0, done = 0;
-		subs.forEach(s => (s.todos || []).forEach(t => { total++; if (t.done) done++; }));
+		let total = 0,
+			done = 0;
+		subs.forEach((s: SubTaskWithLocal) =>
+			(s.todos || []).forEach((t: SubTodo) => {
+				total++;
+				if (t.done) done++;
+			})
+		);
 		setCurrentProgress(total > 0 ? Math.round((done / total) * 100) : 0);
 	}, [subs]);
 
@@ -96,6 +125,8 @@ export function useTicketDetailState(parent: ParentTask, subtasks: SubTask[]) {
 		setNewSubTitle,
 		newSubDue,
 		setNewSubDue,
+
+		// Adding todo states
 		addingTodo,
 		setAddingTodo,
 		newTodoTitle,
@@ -113,4 +144,4 @@ export function useTicketDetailState(parent: ParentTask, subtasks: SubTask[]) {
 		editingTodoEstimates,
 		setEditingTodoEstimates,
 	};
-} 
+}

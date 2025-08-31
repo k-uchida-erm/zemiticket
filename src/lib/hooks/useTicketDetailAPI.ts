@@ -15,21 +15,25 @@ export function useTicketDetailAPI() {
 			const response = await fetch(`/api/parent-tasks/${parent.id}/update`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ 
-					title: title.trim(), 
-					description: desc.trim(), 
-					due_date: due || null 
+				body: JSON.stringify({
+					title: title.trim(),
+					description: desc.trim(),
+					due_date: due || null,
 				}),
 			});
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+				throw new Error(
+					errorData.error || `HTTP ${response.status}: ${response.statusText}`
+				);
 			}
 			setDirty(false);
 			alert('変更が保存されました');
 		} catch (error) {
 			console.error('Failed to save changes:', error);
-			alert(`保存に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			alert(
+				`保存に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
 		}
 	}
 
@@ -45,10 +49,10 @@ export function useTicketDetailAPI() {
 		const currentSub = subs[subIdx];
 		const currentTodo = currentSub?.todos?.find(t => t.id === todoId);
 		if (!currentTodo) return;
-		
+
 		const previousDone = currentTodo.done;
 		const newDone = !previousDone;
-		
+
 		// 楽観的更新: 先にUIを更新
 		setSubs((prev: SubTaskWithLocal[]) =>
 			prev.map((s: SubTaskWithLocal, i: number) => {
@@ -80,7 +84,9 @@ export function useTicketDetailAPI() {
 					if (i !== subIdx) return s;
 					return {
 						...s,
-						todos: (s.todos || []).map((t: SubTodo) => (t.id === todoId ? { ...t, done: previousDone ?? false } : t)),
+						todos: (s.todos || []).map((t: SubTodo) =>
+							t.id === todoId ? { ...t, done: previousDone ?? false } : t
+						),
 					};
 				})
 			);
@@ -96,15 +102,17 @@ export function useTicketDetailAPI() {
 		editingTodoTitles: Record<string, Record<string, string>>,
 		editingTodoEstimates: Record<string, Record<string, string>>,
 		setSubs: React.Dispatch<React.SetStateAction<SubTaskWithLocal[]>>,
-		setEditingSub: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
+		setEditingSub: React.Dispatch<
+			React.SetStateAction<Record<string, boolean>>
+		>,
 		setDirty: (dirty: boolean) => void
 	) {
 		const subIdx = subs.findIndex(s => s.id === subtaskId);
 		if (subIdx === -1) return;
-		
+
 		const subtask = subs[subIdx];
 		const newTitle = editingSubTitle[subtaskId];
-		
+
 		try {
 			// Update subtask title
 			if (newTitle && newTitle !== subtask.title) {
@@ -118,23 +126,23 @@ export function useTicketDetailAPI() {
 
 			// Update todos
 			if (subtask.todos) {
-				const updatePromises = subtask.todos.map(async (todo) => {
+				const updatePromises = subtask.todos.map(async todo => {
 					const newTodoTitle = editingTodoTitles[subtaskId]?.[todo.id];
 					const newEstimate = editingTodoEstimates[subtaskId]?.[todo.id];
-					
-					const hasChanges = 
+
+					const hasChanges =
 						(newTodoTitle && newTodoTitle !== todo.title) ||
-						(newEstimate !== String(todo.estimateHours || ''));
-					
+						newEstimate !== String(todo.estimateHours || '');
+
 					if (hasChanges) {
 						const estimate_hours = newEstimate === '' ? 0 : Number(newEstimate);
 						const response = await fetch(`/api/todos/update`, {
 							method: 'PUT',
 							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({ 
+							body: JSON.stringify({
 								todoId: todo.id,
 								title: newTodoTitle || todo.title,
-								estimate_hours 
+								estimate_hours,
 							}),
 						});
 						if (!response.ok) throw new Error('Failed to update todo');
@@ -144,22 +152,27 @@ export function useTicketDetailAPI() {
 			}
 
 			// Update local state
-			setSubs(prev => prev.map((s, i) => {
-				if (i === subIdx) {
-					return {
-						...s,
-						title: newTitle || s.title,
-						todos: (s.todos || []).map(todo => ({
-							...todo,
-							title: editingTodoTitles[subtaskId]?.[todo.id] || todo.title,
-							estimateHours: editingTodoEstimates[subtaskId]?.[todo.id] !== undefined 
-								? (editingTodoEstimates[subtaskId]?.[todo.id] === '' ? 0 : Number(editingTodoEstimates[subtaskId]?.[todo.id]))
-								: todo.estimateHours
-						}))
-					};
-				}
-				return s;
-			}));
+			setSubs(prev =>
+				prev.map((s, i) => {
+					if (i === subIdx) {
+						return {
+							...s,
+							title: newTitle || s.title,
+							todos: (s.todos || []).map(todo => ({
+								...todo,
+								title: editingTodoTitles[subtaskId]?.[todo.id] || todo.title,
+								estimateHours:
+									editingTodoEstimates[subtaskId]?.[todo.id] !== undefined
+										? editingTodoEstimates[subtaskId]?.[todo.id] === ''
+											? 0
+											: Number(editingTodoEstimates[subtaskId]?.[todo.id])
+										: todo.estimateHours,
+							})),
+						};
+					}
+					return s;
+				})
+			);
 
 			setEditingSub(prev => ({ ...prev, [subtaskId]: false }));
 			setDirty(true);
@@ -181,7 +194,7 @@ export function useTicketDetailAPI() {
 				method: 'DELETE',
 			});
 			if (!response.ok) throw new Error('Failed to delete todo');
-			
+
 			// 楽観的更新: 先にUIを更新
 			setSubs((prev: SubTaskWithLocal[]) =>
 				prev.map((s: SubTaskWithLocal, i: number) => {
@@ -205,17 +218,23 @@ export function useTicketDetailAPI() {
 		newTodoTitle: Record<string, string>,
 		newTodoEstimate: Record<string, string>,
 		setSubs: React.Dispatch<React.SetStateAction<SubTaskWithLocal[]>>,
-		setAddingTodo: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
-		setNewTodoTitle: React.Dispatch<React.SetStateAction<Record<string, string>>>,
-		setNewTodoEstimate: React.Dispatch<React.SetStateAction<Record<string, string>>>,
+		setAddingTodo: React.Dispatch<
+			React.SetStateAction<Record<string, boolean>>
+		>,
+		setNewTodoTitle: React.Dispatch<
+			React.SetStateAction<Record<string, string>>
+		>,
+		setNewTodoEstimate: React.Dispatch<
+			React.SetStateAction<Record<string, string>>
+		>,
 		setDirty: (dirty: boolean) => void
 	) {
 		const subtask = subs[subIdx];
 		const title = (newTodoTitle[subtask.id] || '').trim();
 		const estimateStr = newTodoEstimate[subtask.id] || '';
-		
+
 		if (!title) return;
-		
+
 		try {
 			const response = await fetch('/api/todos/create', {
 				method: 'POST',
@@ -226,12 +245,12 @@ export function useTicketDetailAPI() {
 					estimate_hours: estimateStr === '' ? 0 : Number(estimateStr),
 				}),
 			});
-			
+
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
 				throw new Error(errorData.error || 'Failed to create todo');
 			}
-			
+
 			const newTodoApi = await response.json();
 			const mapped = {
 				id: newTodoApi.id,
@@ -239,11 +258,13 @@ export function useTicketDetailAPI() {
 				estimateHours: newTodoApi.estimate_hours,
 				done: newTodoApi.done || false,
 			};
-			
-			setSubs(prev => prev.map((s, i) => 
-				i === subIdx ? { ...s, todos: [...(s.todos || []), mapped] } : s
-			));
-			
+
+			setSubs(prev =>
+				prev.map((s, i) =>
+					i === subIdx ? { ...s, todos: [...(s.todos || []), mapped] } : s
+				)
+			);
+
 			setAddingTodo(prev => ({ ...prev, [subtask.id]: false }));
 			setNewTodoTitle(prev => ({ ...prev, [subtask.id]: '' }));
 			setNewTodoEstimate(prev => ({ ...prev, [subtask.id]: '' }));
@@ -267,7 +288,7 @@ export function useTicketDetailAPI() {
 	) {
 		const title = newSubTitle.trim();
 		if (!title) return;
-		
+
 		try {
 			const response = await fetch('/api/sub-tasks/create', {
 				method: 'POST',
@@ -278,12 +299,12 @@ export function useTicketDetailAPI() {
 					due_date: newSubDue || null,
 				}),
 			});
-			
+
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
 				throw new Error(errorData.error || 'Failed to create subtask');
 			}
-			
+
 			const newSubApi = await response.json();
 			const newSubLocal: SubTaskWithLocal = {
 				id: newSubApi.id,
@@ -294,7 +315,7 @@ export function useTicketDetailAPI() {
 				description: newSubApi.description || '',
 				todos: [],
 			};
-			
+
 			setSubs(prev => [...prev, newSubLocal]);
 			setOpenTodos(prev => ({ ...prev, [newSubApi.id]: true }));
 			setAddingSub(false);
@@ -315,4 +336,4 @@ export function useTicketDetailAPI() {
 		addTodo,
 		createSub,
 	};
-} 
+}

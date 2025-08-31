@@ -5,10 +5,12 @@ interface HomeRightColumnProps {
 	submittingTickets: Array<ParentTask & { children?: SubTask[] }>;
 }
 
-export default function HomeRightColumn({ submittingTickets }: HomeRightColumnProps) {
+export default function HomeRightColumn({
+	submittingTickets,
+}: HomeRightColumnProps) {
 	return (
-		<div className="lg:col-span-2">
+		<div className='lg:col-span-2'>
 			<InReviewSection submittingTickets={submittingTickets} />
 		</div>
 	);
-} 
+}

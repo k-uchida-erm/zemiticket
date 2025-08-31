@@ -17,9 +17,14 @@ interface TicketListContainerProps {
 	selectedTicketSlug?: string;
 }
 
-export default function TicketListContainer({ groupedByEpic, onSelect, onCreateEpic, selectedTicketSlug }: TicketListContainerProps) {
+export default function TicketListContainer({
+	groupedByEpic,
+	onSelect,
+	onCreateEpic,
+	selectedTicketSlug,
+}: TicketListContainerProps) {
 	return (
-		<div className="mt-5 space-y-3 relative pl-2">
+		<div className='mt-5 space-y-3 relative pl-2'>
 			<VerticalLine />
 			{groupedByEpic.map(({ epic, list }) => (
 				<EpicGroup
@@ -33,10 +38,4 @@ export default function TicketListContainer({ groupedByEpic, onSelect, onCreateE
 			))}
 		</div>
 	);
-} 
- 
- 
- 
- 
- 
- 
+}

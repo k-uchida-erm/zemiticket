@@ -4,7 +4,10 @@ import { createSupabaseServerClient } from '../../../../lib/supabase/server';
 export async function POST(request: NextRequest) {
 	try {
 		// 環境変数の確認
-		if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+		if (
+			!process.env.NEXT_PUBLIC_SUPABASE_URL ||
+			!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+		) {
 			console.error('Missing Supabase credentials');
 			return NextResponse.json(
 				{ error: 'Supabase credentials not configured' },
@@ -18,7 +21,10 @@ export async function POST(request: NextRequest) {
 		if (!parent_task_id || !title) {
 			console.error('Missing required fields:', { parent_task_id, title });
 			return NextResponse.json(
-				{ error: 'Missing required fields: parent_task_id and title are required' },
+				{
+					error:
+						'Missing required fields: parent_task_id and title are required',
+				},
 				{ status: 400 }
 			);
 		}
@@ -57,19 +63,23 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const nextSortOrder = maxSortOrderResult && maxSortOrderResult.length > 0 
-			? (maxSortOrderResult[0].sort_order || 0) + 1 
-			: 1;
+		const nextSortOrder =
+			maxSortOrderResult && maxSortOrderResult.length > 0
+				? (maxSortOrderResult[0].sort_order || 0) + 1
+				: 1;
 
 		// slugを自動生成（タイトルベース）
 		const generateSlug = (title: string) => {
-			return title
-				.toLowerCase()
-				.replace(/[^a-z0-9\s-]/g, '')
-				.replace(/\s+/g, '-')
-				.replace(/-+/g, '-')
-				.trim()
-				+ '-' + Date.now();
+			return (
+				title
+					.toLowerCase()
+					.replace(/[^a-z0-9\s-]/g, '')
+					.replace(/\s+/g, '-')
+					.replace(/-+/g, '-')
+					.trim() +
+				'-' +
+				Date.now()
+			);
 		};
 
 		const slug = generateSlug(title);
@@ -89,7 +99,7 @@ export async function POST(request: NextRequest) {
 				estimate_hours: null,
 				actual_hours: null,
 				comments_count: 0,
-				sort_order: nextSortOrder
+				sort_order: nextSortOrder,
 			})
 			.select()
 			.single();
@@ -103,25 +113,13 @@ export async function POST(request: NextRequest) {
 		}
 
 		return NextResponse.json({ success: true, data: newSubTask });
-
 	} catch (error) {
 		console.error('Unexpected error in /api/sub-tasks/create:', error);
 		return NextResponse.json(
-			{ error: `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}` },
+			{
+				error: `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+			},
 			{ status: 500 }
 		);
 	}
-} 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
+}

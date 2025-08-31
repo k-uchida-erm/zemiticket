@@ -6,7 +6,10 @@ export async function POST(req: Request) {
 	try {
 		const { access_token, refresh_token } = await req.json();
 		if (!access_token || !refresh_token) {
-			return NextResponse.json({ ok: false, message: 'Missing tokens' }, { status: 400 });
+			return NextResponse.json(
+				{ ok: false, message: 'Missing tokens' },
+				{ status: 400 }
+			);
 		}
 
 		const cookieStore = await cookies();
@@ -28,12 +31,19 @@ export async function POST(req: Request) {
 			}
 		);
 
-		const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-		if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 });
+		const { error } = await supabase.auth.setSession({
+			access_token,
+			refresh_token,
+		});
+		if (error)
+			return NextResponse.json(
+				{ ok: false, message: error.message },
+				{ status: 400 }
+			);
 
 		return NextResponse.json({ ok: true });
 	} catch (e: unknown) {
 		const msg = e instanceof Error ? e.message : 'Unexpected error';
 		return NextResponse.json({ ok: false, message: msg }, { status: 500 });
 	}
-} 
+}

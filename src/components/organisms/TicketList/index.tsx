@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import SectionTitle from '../../atoms/SectionTitle';
 import IconList from '../../atoms/icons/List';
@@ -23,23 +23,33 @@ interface TicketListProps {
 	selectedTicketSlug?: string;
 }
 
-export default function TicketList({ groupedByEpic, onSelect, onCreateEpic, isCollapsed, selectedTicketSlug }: TicketListProps) {
+export default function TicketList({
+	groupedByEpic,
+	onSelect,
+	onCreateEpic,
+	isCollapsed,
+	selectedTicketSlug,
+}: TicketListProps) {
 	// データの安全性チェック
 	if (!groupedByEpic || groupedByEpic.length === 0) {
 		return (
-			<ScrollableContainer className={`${isCollapsed ? 'w-full' : 'w-full'} space-y-2 ${isCollapsed ? 'px-1' : 'px-4'}`}>
+			<ScrollableContainer
+				className={`${isCollapsed ? 'w-full' : 'w-full'} space-y-2 ${isCollapsed ? 'px-1' : 'px-4'}`}
+			>
 				{!isCollapsed && (
 					<section>
 						<SectionTitle icon={<IconList />}>All tickets</SectionTitle>
 					</section>
 				)}
-				{!isCollapsed && <EmptyState message="No tickets available" />}
+				{!isCollapsed && <EmptyState message='No tickets available' />}
 			</ScrollableContainer>
 		);
 	}
 
 	return (
-		<ScrollableContainer className={`${isCollapsed ? 'w-full' : 'w-full'} space-y-2 ${isCollapsed ? 'px-1' : 'px-4'}`}>
+		<ScrollableContainer
+			className={`${isCollapsed ? 'w-full' : 'w-full'} space-y-2 ${isCollapsed ? 'px-1' : 'px-4'}`}
+		>
 			{!isCollapsed && (
 				<section>
 					<SectionTitle icon={<IconList />}>All tickets</SectionTitle>
@@ -55,7 +65,4 @@ export default function TicketList({ groupedByEpic, onSelect, onCreateEpic, isCo
 			)}
 		</ScrollableContainer>
 	);
-} 
- 
- 
- 
+}

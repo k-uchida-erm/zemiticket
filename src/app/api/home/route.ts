@@ -13,6 +13,7 @@ interface SupabaseParentTask {
 	priority?: string;
 	due_date?: string;
 	progress_percentage?: number;
+	estimate_hours?: number;
 	sort_order?: number;
 	is_active?: boolean;
 	user_id: string;
@@ -31,6 +32,7 @@ interface SupabaseSubTask {
 	priority?: string;
 	due_date?: string;
 	done?: boolean;
+	estimate_hours?: number;
 	sort_order?: number;
 	user_id: string;
 	users: { name: string };
@@ -53,10 +55,15 @@ function convertToParentTask(supabaseTask: SupabaseParentTask): ParentTask {
 		user: supabaseTask.users.name,
 		description: supabaseTask.description,
 		slug: supabaseTask.slug,
-		status: (supabaseTask.status as 'todo' | 'in_progress' | 'review' | 'done') || 'todo',
-		priority: (supabaseTask.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium',
+		status:
+			(supabaseTask.status as 'todo' | 'in_progress' | 'review' | 'done') ||
+			'todo',
+		priority:
+			(supabaseTask.priority as 'low' | 'medium' | 'high' | 'urgent') ||
+			'medium',
 		due: supabaseTask.due_date,
 		progressPercentage: supabaseTask.progress_percentage || 0,
+		estimateHours: supabaseTask.estimate_hours,
 		sort_order: supabaseTask.sort_order,
 		is_active: supabaseTask.is_active,
 		sub_tasks: supabaseTask.sub_tasks.map(subTask => ({
@@ -65,42 +72,53 @@ function convertToParentTask(supabaseTask: SupabaseParentTask): ParentTask {
 			user: subTask.users.name,
 			description: subTask.description,
 			slug: subTask.slug,
-			status: (subTask.status as 'todo' | 'in_progress' | 'review' | 'done') || 'todo',
-			priority: (subTask.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium',
+			status:
+				(subTask.status as 'todo' | 'in_progress' | 'review' | 'done') ||
+				'todo',
+			priority:
+				(subTask.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium',
 			due: subTask.due_date,
 			done: subTask.done,
+			estimateHours: subTask.estimate_hours,
 			sort_order: subTask.sort_order,
 			todos: subTask.todos.map(todo => ({
 				id: todo.id,
 				title: todo.title,
 				done: todo.done,
 				estimateHours: todo.estimate_hours,
-				sort_order: todo.sort_order
-			}))
-		}))
+				sort_order: todo.sort_order,
+			})),
+		})),
 	};
 }
 
 export async function GET() {
-  try {
-    // 環境変数の確認
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Missing Supabase environment variables');
-      return NextResponse.json({ 
-        error: 'Missing Supabase configuration',
-        details: { supabaseUrl: !!supabaseUrl, supabaseAnonKey: !!supabaseAnonKey }
-      }, { status: 500 });
-    }
+	try {
+		// 環境変数の確認
+		const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+		const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    const supabase = await createSupabaseServerClient();
+		if (!supabaseUrl || !supabaseAnonKey) {
+			console.error('Missing Supabase environment variables');
+			return NextResponse.json(
+				{
+					error: 'Missing Supabase configuration',
+					details: {
+						supabaseUrl: !!supabaseUrl,
+						supabaseAnonKey: !!supabaseAnonKey,
+					},
+				},
+				{ status: 500 }
+			);
+		}
 
-    // 1. アクティブチケットボード用データ（親タスクと子タスク）
-    const { data: activeGroups, error: activeGroupsError } = await supabase
-      .from('parent_tasks')
-      .select(`
+		const supabase = await createSupabaseServerClient();
+
+		// 1. アクティブチケットボード用データ（親タスクと子タスク）
+		const { data: activeGroups, error: activeGroupsError } = await supabase
+			.from('parent_tasks')
+			.select(
+				`
         *,
         users!fk_parent_tasks_user_id(name),
         epics!fk_parent_tasks_epic_id(name),
@@ -109,21 +127,27 @@ export async function GET() {
           users(name),
           todos(*)
         )
-      `)
-      .eq('is_active', true) // is_active = trueのチケットのみ
-      .order('sort_order', { ascending: true })
-      .order('priority', { ascending: false })
-      .order('due_date', { ascending: true });
+      `
+			)
+			.eq('is_active', true) // is_active = trueのチケットのみ
+			.order('sort_order', { ascending: true })
+			.order('priority', { ascending: false })
+			.order('due_date', { ascending: true });
 
-    if (activeGroupsError) {
-      console.error('Active groups error:', activeGroupsError);
-      return NextResponse.json({ error: 'Failed to fetch active groups' }, { status: 500 });
-    }
+		if (activeGroupsError) {
+			console.error('Active groups error:', activeGroupsError);
+			return NextResponse.json(
+				{ error: 'Failed to fetch active groups' },
+				{ status: 500 }
+			);
+		}
 
-    // 2. レビュー中チケット用データ
-    const { data: submittingTickets, error: submittingTicketsError } = await supabase
-      .from('parent_tasks')
-      .select(`
+		// 2. レビュー中チケット用データ
+		const { data: submittingTickets, error: submittingTicketsError } =
+			await supabase
+				.from('parent_tasks')
+				.select(
+					`
         *,
         users!fk_parent_tasks_user_id(name),
         epics!fk_parent_tasks_epic_id(name),
@@ -132,20 +156,26 @@ export async function GET() {
           users(name),
           todos(*)
         )
-      `)
-      .eq('status', 'review')
-      .order('sort_order', { ascending: true })
-      .order('updated_at', { ascending: false });
+      `
+				)
+				.eq('status', 'review')
+				.order('sort_order', { ascending: true })
+				.order('updated_at', { ascending: false });
 
-    if (submittingTicketsError) {
-      console.error('Submitting tickets error:', submittingTicketsError);
-      return NextResponse.json({ error: 'Failed to fetch submitting tickets' }, { status: 500 });
-    }
+		if (submittingTicketsError) {
+			console.error('Submitting tickets error:', submittingTicketsError);
+			return NextResponse.json(
+				{ error: 'Failed to fetch submitting tickets' },
+				{ status: 500 }
+			);
+		}
 
-    // 3. 他ユーザーのアクティブチケット
-    const { data: othersActiveParents, error: othersActiveParentsError } = await supabase
-      .from('parent_tasks')
-      .select(`
+		// 3. 他ユーザーのアクティブチケット
+		const { data: othersActiveParents, error: othersActiveParentsError } =
+			await supabase
+				.from('parent_tasks')
+				.select(
+					`
         *,
         users!fk_parent_tasks_user_id(name),
         epics!fk_parent_tasks_epic_id(name),
@@ -154,53 +184,71 @@ export async function GET() {
           users(name),
           todos(*)
         )
-      `)
-      .in('status', ['todo', 'in_progress'])
-      .not('user_id', 'is', null)
-      .order('sort_order', { ascending: true })
-      .order('priority', { ascending: false })
-      .order('due_date', { ascending: true });
+      `
+				)
+				.in('status', ['todo', 'in_progress'])
+				.not('user_id', 'is', null)
+				.order('sort_order', { ascending: true })
+				.order('priority', { ascending: false })
+				.order('due_date', { ascending: true });
 
-    if (othersActiveParentsError) {
-      console.error('Others active parents error:', othersActiveParentsError);
-      return NextResponse.json({ error: 'Failed to fetch others active parents' }, { status: 500 });
-    }
+		if (othersActiveParentsError) {
+			console.error('Others active parents error:', othersActiveParentsError);
+			return NextResponse.json(
+				{ error: 'Failed to fetch others active parents' },
+				{ status: 500 }
+			);
+		}
 
-    // 共通関数でデータ変換（時間計算込み）
-    const transformedActiveGroups = (activeGroups as SupabaseParentTask[])?.map((group: SupabaseParentTask) => {
-      const parentTask = convertToParentTask(group);
-      const transformed = transformTaskData(parentTask);
-      return transformed;
-    }) || [];
+		// 共通関数でデータ変換（時間計算込み）
+		const transformedActiveGroups =
+			(activeGroups as SupabaseParentTask[])?.map(
+				(group: SupabaseParentTask) => {
+					const parentTask = convertToParentTask(group);
+					const transformed = transformTaskData(parentTask);
+					return {
+						parent: transformed.parent,
+						sub_tasks: transformed.children, // sub_tasksプロパティを明示的に設定
+						children: transformed.children,
+					};
+				}
+			) || [];
 
-    // 提出中のチケットは UI が (ParentTask & { children?: SubTask[] })[] を期待するため、
-    // transformTaskData の結果から { ...parent, children } に正規化する
-    const transformedSubmittingTickets = (submittingTickets as SupabaseParentTask[])?.map((ticket: SupabaseParentTask) => {
-      const parentTask = convertToParentTask(ticket);
-      const t = transformTaskData(parentTask);
-      return { ...t.parent, children: t.children };
-    }) || [];
+		// 提出中のチケットは UI が (ParentTask & { children?: SubTask[] })[] を期待するため、
+		// transformTaskData の結果から { ...parent, children } に正規化する
+		const transformedSubmittingTickets =
+			(submittingTickets as SupabaseParentTask[])?.map(
+				(ticket: SupabaseParentTask) => {
+					const parentTask = convertToParentTask(ticket);
+					const t = transformTaskData(parentTask);
+					return { ...t.parent, children: t.children };
+				}
+			) || [];
 
-    // Others 用も同様にチケット配列を { ...parent, children } 形式で返す
-    // （ユーザー単位でグルーピングする必要があれば、ここで groupBy 可能）
-    const transformedOthersActive = (othersActiveParents as SupabaseParentTask[])?.map((ticket: SupabaseParentTask) => {
-      const parentTask = convertToParentTask(ticket);
-      const t = transformTaskData(parentTask);
-      return {
-        user: t.parent.user,
-        tickets: [{ ...t.parent, children: t.children }]
-      };
-    }) || [];
+		// Others 用も同様にチケット配列を { ...parent, children } 形式で返す
+		// （ユーザー単位でグルーピングする必要があれば、ここで groupBy 可能）
+		const transformedOthersActive =
+			(othersActiveParents as SupabaseParentTask[])?.map(
+				(ticket: SupabaseParentTask) => {
+					const parentTask = convertToParentTask(ticket);
+					const t = transformTaskData(parentTask);
+					return {
+						user: t.parent.user,
+						tickets: [{ ...t.parent, children: t.children }],
+					};
+				}
+			) || [];
 
-    return NextResponse.json({
-      activeGroups: transformedActiveGroups,
-      submittingTickets: transformedSubmittingTickets,
-      othersGrouped: transformedOthersActive
-    });
-
-  } catch (error) {
-    console.error('Error in /api/home:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-} 
- 
+		return NextResponse.json({
+			activeGroups: transformedActiveGroups,
+			submittingTickets: transformedSubmittingTickets,
+			othersGrouped: transformedOthersActive,
+		});
+	} catch (error) {
+		console.error('Error in /api/home:', error);
+		return NextResponse.json(
+			{ error: 'Internal server error' },
+			{ status: 500 }
+		);
+	}
+}

@@ -14,12 +14,12 @@ interface UpdateData {
 	estimate_hours?: number;
 }
 
-export async function PUT(
-	request: NextRequest,
-	{ params }: RouteParams
-) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
 	try {
-		if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+		if (
+			!process.env.NEXT_PUBLIC_SUPABASE_URL ||
+			!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+		) {
 			return NextResponse.json(
 				{ error: 'Supabase credentials not configured' },
 				{ status: 500 }
@@ -28,7 +28,8 @@ export async function PUT(
 
 		const resolvedParams = await params;
 		const { id } = resolvedParams;
-		const { title, description, due_date, status, priority, estimate_hours } = await request.json();
+		const { title, description, due_date, status, priority, estimate_hours } =
+			await request.json();
 
 		if (!id) {
 			return NextResponse.json(
@@ -46,7 +47,8 @@ export async function PUT(
 		if (due_date !== undefined) updateData.due_date = due_date;
 		if (status !== undefined) updateData.status = status;
 		if (priority !== undefined) updateData.priority = priority;
-		if (estimate_hours !== undefined) updateData.estimate_hours = estimate_hours;
+		if (estimate_hours !== undefined)
+			updateData.estimate_hours = estimate_hours;
 
 		const { data: updatedParentTask, error: updateError } = await supabase
 			.from('parent_tasks')
@@ -63,11 +65,10 @@ export async function PUT(
 			);
 		}
 
-		return NextResponse.json({ 
-			success: true, 
-			data: updatedParentTask 
+		return NextResponse.json({
+			success: true,
+			data: updatedParentTask,
 		});
-
 	} catch (error) {
 		console.error('Error in /api/parent-tasks/[id]/update:', error);
 		return NextResponse.json(
@@ -75,5 +76,4 @@ export async function PUT(
 			{ status: 500 }
 		);
 	}
-} 
- 
+}

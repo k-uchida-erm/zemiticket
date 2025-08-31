@@ -1,22 +1,23 @@
-"use client";
+'use client';
 
 import {
-	DndContext,
-	closestCenter,
-	KeyboardSensor,
-	PointerSensor,
-	useSensor,
-	useSensors,
-	DragEndEvent,
+    closestCenter,
+    DndContext,
+    DragEndEvent,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
 } from '@dnd-kit/core';
-import {
-	arrayMove,
-	SortableContext,
-	verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import {
+    arrayMove,
+    SortableContext,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import SortableSubTask from '../SortableSubTask';
-import CommentSection from '../CommentSection';
+
+import { useMemo } from 'react';
 import { ParentTask, SubTask, SubTodo } from '../../../types';
 
 interface Comment {
@@ -44,7 +45,11 @@ interface SortableSubTasksContainerProps {
 	editingTodoEstimates: Record<string, Record<string, string>>;
 	onSubTitleChange: (subtaskId: string, title: string) => void;
 	onTodoTitleChange: (subtaskId: string, todoId: string, title: string) => void;
-	onTodoEstimateChange: (subtaskId: string, todoId: string, estimate: string) => void;
+	onTodoEstimateChange: (
+		subtaskId: string,
+		todoId: string,
+		estimate: string
+	) => void;
 	onAddTodo: (subtaskId: string) => void;
 	onSaveNewTodo: (subtaskId: string) => void;
 	onCancelNewTodo: (subtaskId: string) => void;
@@ -59,7 +64,11 @@ interface SortableSubTasksContainerProps {
 	onDeleteSubtaskComment?: (subtaskId: string, commentId: string) => void;
 	todoComments?: Record<string, Comment[]>;
 	onAddTodoComment?: (subtaskId: string, todoId: string, text: string) => void;
-	onDeleteTodoComment?: (subtaskId: string, todoId: string, commentId: string) => void;
+	onDeleteTodoComment?: (
+		subtaskId: string,
+		todoId: string,
+		commentId: string
+	) => void;
 }
 
 export default function SortableSubTasksContainer({
@@ -95,8 +104,17 @@ export default function SortableSubTasksContainer({
 	onDeleteSubtaskComment,
 	todoComments,
 	onAddTodoComment,
-	onDeleteTodoComment
+	onDeleteTodoComment,
 }: SortableSubTasksContainerProps) {
+	// サブタスクをsort_order順にソート
+	const sortedSubtasks = useMemo(() => {
+		return [...subtasks].sort((a, b) => {
+			const orderA = a.sort_order || 0;
+			const orderB = b.sort_order || 0;
+			return orderA - orderB;
+		});
+	}, [subtasks]);
+
 	const sensors = useSensors(
 		useSensor(PointerSensor),
 		useSensor(KeyboardSensor)
@@ -106,10 +124,10 @@ export default function SortableSubTasksContainer({
 		const { active, over } = event;
 
 		if (active.id !== over?.id) {
-			const oldIndex = subtasks.findIndex((subtask) => subtask.id === active.id);
-			const newIndex = subtasks.findIndex((subtask) => subtask.id === over?.id);
+			const oldIndex = sortedSubtasks.findIndex(subtask => subtask.id === active.id);
+			const newIndex = sortedSubtasks.findIndex(subtask => subtask.id === over?.id);
 
-			const newOrder = arrayMove(subtasks, oldIndex, newIndex);
+			const newOrder = arrayMove(sortedSubtasks, oldIndex, newIndex);
 			onReorderSubtasks(newOrder);
 		}
 	};
@@ -121,13 +139,13 @@ export default function SortableSubTasksContainer({
 			onDragEnd={handleDragEnd}
 			modifiers={[restrictToVerticalAxis]}
 		>
-			<SortableContext items={subtasks} strategy={verticalListSortingStrategy}>
-				<div className="space-y-4">
-					{subtasks.map((subtask) => (
+			<SortableContext items={sortedSubtasks} strategy={verticalListSortingStrategy}>
+				<div className='space-y-4'>
+					{sortedSubtasks.map(subtask => (
 						<SortableSubTask
 							key={subtask.id}
 							subtask={subtask}
-							parent={parent}
+							_parent={parent}
 							openTodos={openTodos}
 							onToggleTodos={onToggleTodos}
 							onToggleTodo={onToggleTodo}
@@ -164,5 +182,4 @@ export default function SortableSubTasksContainer({
 			</SortableContext>
 		</DndContext>
 	);
-} 
- 
+}

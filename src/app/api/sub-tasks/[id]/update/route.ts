@@ -16,12 +16,12 @@ interface UpdateData {
 	sort_order?: number;
 }
 
-export async function PUT(
-	request: NextRequest,
-	{ params }: RouteParams
-) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
 	try {
-		if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+		if (
+			!process.env.NEXT_PUBLIC_SUPABASE_URL ||
+			!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+		) {
 			return NextResponse.json(
 				{ error: 'Supabase credentials not configured' },
 				{ status: 500 }
@@ -30,7 +30,16 @@ export async function PUT(
 
 		const resolvedParams = await params;
 		const { id } = resolvedParams;
-		const { title, due_date, user_id, done, status, priority, estimate_hours, sort_order } = await request.json();
+		const {
+			title,
+			due_date,
+			user_id,
+			done,
+			status,
+			priority,
+			estimate_hours,
+			sort_order,
+		} = await request.json();
 
 		if (!id) {
 			return NextResponse.json(
@@ -49,7 +58,8 @@ export async function PUT(
 		if (done !== undefined) updateData.done = done;
 		if (status !== undefined) updateData.status = status;
 		if (priority !== undefined) updateData.priority = priority;
-		if (estimate_hours !== undefined) updateData.estimate_hours = estimate_hours;
+		if (estimate_hours !== undefined)
+			updateData.estimate_hours = estimate_hours;
 		if (sort_order !== undefined) updateData.sort_order = sort_order;
 
 		const { data: updatedSubTask, error: updateError } = await supabase
@@ -67,11 +77,10 @@ export async function PUT(
 			);
 		}
 
-		return NextResponse.json({ 
-			success: true, 
-			data: updatedSubTask 
+		return NextResponse.json({
+			success: true,
+			data: updatedSubTask,
 		});
-
 	} catch (error) {
 		console.error('Error in /api/sub-tasks/[id]/update:', error);
 		return NextResponse.json(
@@ -79,5 +88,4 @@ export async function PUT(
 			{ status: 500 }
 		);
 	}
-} 
- 
+}

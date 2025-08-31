@@ -21,7 +21,12 @@ export function useTicketDetailReorder() {
 			await Promise.all(updatePromises);
 		} catch (error) {
 			console.error('Error reordering subtasks:', error);
-			setSubs((subtasks || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) })));
+			setSubs(
+				(subtasks || []).map(c => ({
+					...c,
+					todos: (c.todos || []).map(t => ({ ...t })),
+				}))
+			);
 			alert('サブタスクの並び替えに失敗しました。');
 		}
 	}
@@ -33,13 +38,15 @@ export function useTicketDetailReorder() {
 		setSubs: React.Dispatch<React.SetStateAction<SubTaskWithLocal[]>>
 	) {
 		try {
-			setSubs((prev) => prev.map((subtask) => {
-				if (subtask.id === subtaskId) {
-					return { ...subtask, todos: newOrder };
-				}
-				return subtask;
-			}));
-			
+			setSubs(prev =>
+				prev.map(subtask => {
+					if (subtask.id === subtaskId) {
+						return { ...subtask, todos: newOrder };
+					}
+					return subtask;
+				})
+			);
+
 			const updatePromises = newOrder.map((todo, index) => {
 				return fetch(`/api/todos/${todo.id}/update`, {
 					method: 'PUT',
@@ -50,7 +57,12 @@ export function useTicketDetailReorder() {
 			await Promise.all(updatePromises);
 		} catch (error) {
 			console.error('Error reordering todos:', error);
-			setSubs((subtasks || []).map((c) => ({ ...c, todos: (c.todos || []).map((t) => ({ ...t })) })));
+			setSubs(
+				(subtasks || []).map(c => ({
+					...c,
+					todos: (c.todos || []).map(t => ({ ...t })),
+				}))
+			);
 			alert('TODOの並び替えに失敗しました。');
 		}
 	}
@@ -59,4 +71,4 @@ export function useTicketDetailReorder() {
 		reorderSubtasks,
 		reorderTodos,
 	};
-} 
+}

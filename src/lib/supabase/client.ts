@@ -12,8 +12,10 @@ export function getBrowserSupabase(): SupabaseBrowserClient {
 	const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 	const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 	if (!supabaseUrl || !supabaseAnonKey) {
-		throw new Error('[supabase] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is missing');
+		throw new Error(
+			'[supabase] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is missing'
+		);
 	}
 	browserClient = createClient(supabaseUrl, supabaseAnonKey);
 	return browserClient;
-} 
+}

@@ -9,9 +9,15 @@ export async function PUT(request: NextRequest) {
 
 		// subtaskIdの型チェックを緩和（string, number, UUIDすべて受け入れ）
 		// statusの値チェックも緩和（in_progressも受け入れ、内部的にactiveに変換）
-		if (!subtaskId || !['todo', 'active', 'completed', 'in_progress'].includes(status)) {
+		if (
+			!subtaskId ||
+			!['todo', 'active', 'completed', 'in_progress'].includes(status)
+		) {
 			return NextResponse.json(
-				{ error: 'Invalid request data', details: { subtaskId, status, subtaskIdType: typeof subtaskId } },
+				{
+					error: 'Invalid request data',
+					details: { subtaskId, status, subtaskIdType: typeof subtaskId },
+				},
 				{ status: 400 }
 			);
 		}
@@ -35,11 +41,10 @@ export async function PUT(request: NextRequest) {
 		}
 
 		return NextResponse.json({ success: true, data });
-
 	} catch (error) {
 		return NextResponse.json(
 			{ error: 'Internal server error', details: error },
 			{ status: 500 }
 		);
 	}
-} 
+}

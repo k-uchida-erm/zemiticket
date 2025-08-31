@@ -28,7 +28,6 @@ export async function PUT(request: NextRequest) {
 		}
 
 		return NextResponse.json({ success: true });
-
 	} catch (error) {
 		console.error('Error in /api/tickets/update-active:', error);
 		return NextResponse.json(
@@ -36,4 +35,4 @@ export async function PUT(request: NextRequest) {
 			{ status: 500 }
 		);
 	}
-} 
+}

@@ -5,7 +5,7 @@ services:
     build: .
     container_name: zemiticket-app
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true

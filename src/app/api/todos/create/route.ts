@@ -4,7 +4,10 @@ import { createSupabaseServerClient } from '../../../../lib/supabase/server';
 export async function POST(request: NextRequest) {
 	try {
 		// 環境変数の確認
-		if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+		if (
+			!process.env.NEXT_PUBLIC_SUPABASE_URL ||
+			!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+		) {
 			return NextResponse.json(
 				{ error: 'Supabase credentials not configured' },
 				{ status: 500 }
@@ -39,9 +42,10 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const nextSortOrder = maxSortOrderResult && maxSortOrderResult.length > 0 
-			? (maxSortOrderResult[0].sort_order || 0) + 1 
-			: 1;
+		const nextSortOrder =
+			maxSortOrderResult && maxSortOrderResult.length > 0
+				? (maxSortOrderResult[0].sort_order || 0) + 1
+				: 1;
 
 		// 新規todoを作成
 		const { data: newTodo, error: createError } = await supabase
@@ -51,9 +55,12 @@ export async function POST(request: NextRequest) {
 				title,
 				done: false,
 				in_progress: false,
-				estimate_hours: (estimate_hours === null || estimate_hours === undefined) ? null : estimate_hours,
+				estimate_hours:
+					estimate_hours === null || estimate_hours === undefined
+						? null
+						: estimate_hours,
 				progress_value: null,
-				sort_order: nextSortOrder
+				sort_order: nextSortOrder,
 			})
 			.select()
 			.single();
@@ -67,7 +74,6 @@ export async function POST(request: NextRequest) {
 		}
 
 		return NextResponse.json(newTodo);
-
 	} catch (error) {
 		console.error('Error in /api/todos/create:', error);
 		return NextResponse.json(
@@ -75,4 +81,4 @@ export async function POST(request: NextRequest) {
 			{ status: 500 }
 		);
 	}
-} 
+}

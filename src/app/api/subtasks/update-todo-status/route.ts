@@ -43,11 +43,13 @@ export async function PUT(request: NextRequest) {
 		// 3. 必要に応じてサブチケットのstatusを自動更新
 		// ただし、手動でのドラッグ&ドロップによる変更は妨げない
 		if (todos && todos.length > 0) {
-			const completedCount = todos.filter((todo: { done: boolean }) => todo.done).length;
+			const completedCount = todos.filter(
+				(todo: { done: boolean }) => todo.done
+			).length;
 			const totalCount = todos.length;
-			
+
 			let newStatus: 'todo' | 'active' | 'completed';
-			
+
 			if (completedCount === 0) {
 				newStatus = 'todo';
 			} else if (completedCount === totalCount) {
@@ -65,11 +67,10 @@ export async function PUT(request: NextRequest) {
 		}
 
 		return NextResponse.json({ success: true });
-
-	} catch (error) {
+	} catch {
 		return NextResponse.json(
 			{ error: 'Internal server error' },
 			{ status: 500 }
 		);
 	}
-} 
+}
