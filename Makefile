@@ -174,7 +174,7 @@ status:
 # データベースの状態確認
 db-status:
 	@echo "🗄️ データベースの状態を確認中..."
-	docker compose exec app npx supabase status
+	docker compose exec app npx supabase status || true
 
 # データベースのリセット
 db-reset:

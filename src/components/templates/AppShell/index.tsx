@@ -1,8 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import Header from '../../organisms/Header';
+import React, { useEffect, useState } from 'react';
 import Sidebar from '../../organisms/Sidebar';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -39,7 +38,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
 	if (isAuthRoute) {
 		return (
-			<div className='min-h-screen bg-white'>
+			<div className='min-h-screen bg-neutral-100'>
 				<main className='min-h-screen'>{children}</main>
 			</div>
 		);
@@ -47,29 +46,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
 	return (
 		<div className='min-h-screen bg-white overflow-hidden'>
-			<Header />
+			{/* <Header /> hidden by request */}
 			<Sidebar onToggle={handleSidebarToggle} />
 			<div
-				className='fixed top-16 right-0 bottom-0 transition-all duration-300'
+				className='fixed top-0 right-0 bottom-0 transition-all duration-300'
 				style={{
-					left: isSidebarCollapsed ? '4rem' : '15vw',
+					left: isSidebarCollapsed ? 'calc(4rem + 8px)' : 'calc(15vw + 8px)',
 				}}
 			>
 				<main
-					className={`h-full ${isTicketPage ? 'overflow-hidden' : 'overflow-auto pt-5 pb-6'}`}
+					className={`h-full ${isTicketPage ? 'overflow-hidden' : 'overflow-auto'}`}
 					style={{
-						paddingLeft:
-							pathname === '/research'
-								? '20%'
-								: pathname === '/ticket-map'
-									? '0%'
-									: '3%',
-						paddingRight:
-							pathname === '/research'
-								? '20%'
-								: pathname === '/ticket-map'
-									? '0%'
-									: '3%',
+						paddingLeft: pathname === '/research' ? '20%' : '0%',
+						paddingRight: pathname === '/research' ? '20%' : '0%',
+						paddingTop: 0,
+						paddingBottom: 0,
 					}}
 				>
 					{pathname === '/ticket-map' ? (

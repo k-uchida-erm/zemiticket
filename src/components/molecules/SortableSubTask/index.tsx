@@ -65,6 +65,15 @@ interface TodoMemoState {
 	images: File[];
 }
 
+interface MemoRow {
+	id: string;
+	todo_id: string;
+	content_text: string;
+	content_html: string;
+	created_at?: string;
+	updated_at?: string;
+}
+
 export default function SortableSubTask({
 	subtask,
 	_parent,
@@ -84,15 +93,14 @@ export default function SortableSubTask({
 	onDeleteTodo,
 	onReorderTodos,
 	onSubTitleChange,
+	editingSub,
+	editingSubTitle,
+	editingTodoTitles,
+	editingTodoEstimates,
+	addingTodo,
+	newTodoTitle,
+	newTodoEstimate,
 }: SortableSubTaskProps) {
-	// 状態管理の変数を先に宣言
-	const [editingSub, _setEditingSub] = useState<Record<string, boolean>>({});
-	const [editingSubTitle, _setEditingSubTitle] = useState<Record<string, string>>({});
-	const [addingTodo, _setAddingTodo] = useState<Record<string, boolean>>({});
-	const [newTodoTitle, _setNewTodoTitle] = useState<Record<string, string>>({});
-	const [newTodoEstimate, _setNewTodoEstimate] = useState<Record<string, string>>({});
-	const [editingTodoTitles, _setEditingTodoTitles] = useState<Record<string, string>>({});
-	const [editingTodoEstimates, _setEditingTodoEstimates] = useState<Record<string, string>>({});
 	const [attachedFiles, setAttachedFiles] = useState<Record<string, File[]>>({});
 
 	// 新しい設計のための状態
@@ -101,6 +109,8 @@ export default function SortableSubTask({
 	const [showAddOptions, setShowAddOptions] = useState<Record<string, boolean>>({});
 	const [expandedMemos, setExpandedMemos] = useState<Record<string, boolean>>({});
 	const [editingMemos, setEditingMemos] = useState<Record<string, boolean>>({});
+	const [memoLists, setMemoLists] = useState<Record<string, MemoRow[]>>({});
+	const [editingMemoTarget, setEditingMemoTarget] = useState<Record<string, string | null>>({});
 
 	// ポップアップ外クリックで閉じる機能
 	useEffect(() => {
@@ -156,15 +166,20 @@ export default function SortableSubTask({
 	};
 
 	const handleMemoHtmlChange = (todoId: string, html: string) => {
+		console.log('handleMemoHtmlChange 呼び出し:', { todoId, htmlLength: html.length, htmlPreview: html.substring(0, 100) + '...' });
 		setTodoMemos((prev: Record<string, TodoMemoState>) => ({
 			...prev,
 			[todoId]: { ...prev[todoId], html }
 		}));
 		setEditingMemos((prev: Record<string, boolean>) => ({ ...prev, [todoId]: true }));
+		console.log('HTML更新完了');
 	};
 
 	// Tiptapエディター用の画像貼り付け処理
 	const handleImagePaste = (todoId: string, file: File) => {
+		console.log('handleImagePaste 呼び出し:', { todoId, fileName: file.name, fileType: file.type });
+
+		// ファイルをstateに追加（保存用）- 画像・非画像問わず全て保存
 		setTodoMemos((prev: Record<string, TodoMemoState>) => ({
 			...prev,
 			[todoId]: {
@@ -172,6 +187,41 @@ export default function SortableSubTask({
 				images: [...(prev[todoId]?.images || []), file]
 			}
 		}));
+
+		// 画像ファイルの場合のみ、エディターに直接挿入
+		if (file.type.startsWith('image/')) {
+			console.log('画像ファイルをエディターに挿入中...');
+
+			// data URLを生成してHTMLに挿入
+			const reader = new FileReader();
+			reader.onload = () => {
+				const result = reader.result;
+				if (typeof result === 'string') {
+					console.log('data URL生成完了:', result.substring(0, 50) + '...');
+
+					// 現在のHTMLを取得
+					const currentMemo = todoMemos[todoId];
+					const currentHtml = currentMemo?.html || '';
+
+					// 画像タグを作成（Tiptapと互換性のあるスタイル、デフォルト幅400px）
+					const imageTag = `<img src="${result}" alt="${file.name}" width="400" data-width="400" style="height: auto; max-width: 100%;" />`;
+
+					// HTMLに画像を追加
+					const newHtml = currentHtml ? `${currentHtml}<br/>${imageTag}` : imageTag;
+
+					console.log('HTML更新:', { currentLength: currentHtml.length, newLength: newHtml.length });
+
+					// HTMLを更新（これによりRichTextEditorが更新される）
+					handleMemoHtmlChange(todoId, newHtml);
+				}
+			};
+			reader.onerror = () => {
+				console.error('FileReader エラー');
+			};
+			reader.readAsDataURL(file);
+		} else {
+			console.log('非画像ファイル:', file.name, '- エディターには挿入せず、保存のみ');
+		}
 	};
 
 	const handleImageDelete = (todoId: string, imageIndex: number) => {
@@ -184,8 +234,21 @@ export default function SortableSubTask({
 		}));
 	};
 
-	const toggleMemoExpanded = (todoId: string) => {
+	const toggleMemoExpanded = async (todoId: string) => {
+		const isCurrentlyExpanded = expandedMemos[todoId];
 		setExpandedMemos((prev: Record<string, boolean>) => ({ ...prev, [todoId]: !prev[todoId] }));
+
+		// メモを展開する際に初回のみ詳細データを取得（遅延読み込み）
+		if (!isCurrentlyExpanded && !memoLists[todoId]) {
+			try {
+				await Promise.all([
+					fetchMemoForTodo(todoId),
+					fetchMemoListForTodo(todoId)
+				]);
+			} catch {
+				// エラーハンドリング
+			}
+		}
 	};
 
 	const toggleMemoEditing = (todoId: string) => {
@@ -196,13 +259,170 @@ export default function SortableSubTask({
 		setShowAddOptions((prev: Record<string, boolean>) => ({ ...prev, [todoId]: !prev[todoId] }));
 	};
 
-	const saveMemo = (todoId: string) => {
+	const cancelMemoEdit = (todoId: string) => {
+		// 既存メモ編集中だったかを先に確認
+		const wasEditingExisting = editingMemoTarget[todoId] !== null && editingMemoTarget[todoId] !== undefined;
+
 		setEditingMemos((prev: Record<string, boolean>) => ({ ...prev, [todoId]: false }));
-		// ここで実際の保存処理を行う（API呼び出しなど）
+		setEditingMemoTarget((prev: Record<string, string | null>) => ({ ...prev, [todoId]: null }));
+
+		if (!wasEditingExisting) {
+			// 新規作成キャンセル時のみデータ削除
+			setTodoMemos((prev: Record<string, TodoMemoState>) => {
+				const newMemos = { ...prev };
+				delete newMemos[todoId];
+				return newMemos;
+			});
+		}
+		// 既存メモ編集のキャンセル時は、編集前の状態を保持
 	};
 
-	const cancelMemoEdit = (todoId: string) => {
+	// DBからメモを取得して状態に反映（バッチ処理版）
+	const fetchMemosForAllTodos = async (todoIds: string[]): Promise<void> => {
+		if (todoIds.length === 0) return;
+
+		try {
+			const res = await fetch('/api/todo-memos/batch', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ todoIds })
+			});
+
+			if (!res.ok) return;
+
+			const json: { data: { latest: Record<string, MemoRow | null>; lists: Record<string, MemoRow[]> } } = await res.json();
+			const { latest, lists } = json.data || { latest: {}, lists: {} };
+
+			// 最新メモを状態に反映
+			const newTodoMemos: Record<string, TodoMemoState> = {};
+			todoIds.forEach(todoId => {
+				const latestMemo = latest[todoId];
+				if (latestMemo) {
+					newTodoMemos[todoId] = {
+						content: latestMemo.content_text ?? '',
+						html: latestMemo.content_html ?? '',
+						images: [],
+					};
+				}
+			});
+
+			setTodoMemos(prev => ({ ...prev, ...newTodoMemos }));
+
+			// メモリストを状態に反映
+			setMemoLists(prev => ({ ...prev, ...lists }));
+
+			// 初期状態設定
+			const initialExpandedState: Record<string, boolean> = {};
+			const initialEditingState: Record<string, boolean> = {};
+			todoIds.forEach(todoId => {
+				initialExpandedState[todoId] = false;
+				initialEditingState[todoId] = false;
+			});
+
+			setExpandedMemos(prev => ({ ...prev, ...initialExpandedState }));
+			setEditingMemos(prev => ({ ...prev, ...initialEditingState }));
+		} catch {
+			// noop
+		}
+	};
+
+	// 個別メモ取得（既存）- 保存後の再取得用
+	const fetchMemoForTodo = async (todoId: string): Promise<void> => {
+		try {
+			const res = await fetch(`/api/todo-memos/${todoId}`);
+			if (!res.ok) return;
+			const json: { data: { content_text: string; content_html: string } } = await res.json();
+
+			// HTMLからファイルURLを抽出して既存ファイルとして保持
+
+			// 既存のファイルは不要（HTMLに含まれているため）
+			setTodoMemos((prev: Record<string, TodoMemoState>) => ({
+				...prev,
+				[todoId]: {
+					content: json?.data?.content_text ?? '',
+					html: json?.data?.content_html ?? '',
+					images: [], // ファイルリストは空にして、HTMLの画像のみ表示
+				},
+			}));
+			// 保存後はトグルを開いたままにする（expandedMemosは変更しない）
+			setEditingMemos((prev: Record<string, boolean>) => ({ ...prev, [todoId]: false }));
+		} catch {
+			// noop
+		}
+	};
+
+	const fetchMemoListForTodo = async (todoId: string): Promise<void> => {
+		try {
+			const res = await fetch(`/api/todo-memos/${todoId}/list`);
+			if (!res.ok) return;
+			const json: { data: MemoRow[] } = await res.json();
+			setMemoLists((prev: Record<string, MemoRow[]>) => ({ ...prev, [todoId]: json.data || [] }));
+		} catch {
+			// noop
+		}
+	};
+
+	const beginEditExistingMemo = (todoId: string, memo: MemoRow): void => {
+		// 編集時は画像をエディター内のHTMLのみで表示し、ファイルリストには追加しない
+		setTodoMemos((prev: Record<string, TodoMemoState>) => ({
+			...prev,
+			[todoId]: {
+				content: memo.content_text ?? '',
+				html: memo.content_html ?? '',
+				images: [] // 既存の画像はHTMLに含まれているため、ファイルリストは空にする
+			},
+		}));
+		setExpandedMemos((prev: Record<string, boolean>) => ({ ...prev, [todoId]: true }));
+		setEditingMemos((prev: Record<string, boolean>) => ({ ...prev, [todoId]: true }));
+		setEditingMemoTarget((prev: Record<string, string | null>) => ({ ...prev, [todoId]: memo.id }));
+	};
+
+	// 初期ロード時は基本情報のみ取得（遅延読み込みで高速化）
+	useEffect(() => {
+		const todoIds = (subtask.todos ?? [])
+			.filter((t: SubTodo) => t.id)
+			.map((t: SubTodo) => t.id);
+
+		if (todoIds.length > 0) {
+			// 最小限の情報のみ取得（メモカウント用）
+			void fetchMemosForAllTodos(todoIds);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [subtask.todos]);
+
+	// 保存成功後に最新のメモを再取得（blob置換後のHTML反映のため）
+	const saveMemoAndRefresh = async (todoId: string): Promise<void> => {
 		setEditingMemos((prev: Record<string, boolean>) => ({ ...prev, [todoId]: false }));
+		// 既存メモの上書き扱い: 新規INSERT後に旧IDがあれば削除
+		const replaceId: string | null | undefined = editingMemoTarget[todoId];
+		if (replaceId) {
+			await handleServerDeleteMemo(replaceId, todoId);
+			setEditingMemoTarget((prev: Record<string, string | null>) => ({ ...prev, [todoId]: null }));
+		}
+		await fetchMemoForTodo(todoId);
+		await fetchMemoListForTodo(todoId);
+	};
+
+	const handleServerDeleteMemo = async (memoId: string, todoId: string): Promise<void> => {
+		try {
+			console.log('削除開始:', { memoId, todoId });
+			const res = await fetch(`/api/todo-memos/delete/${memoId}`, { method: 'DELETE' });
+			console.log('削除API応答:', { status: res.status, ok: res.ok });
+
+			if (!res.ok) {
+				const errorText = await res.text();
+				console.error('削除API失敗:', errorText);
+				alert(`メモの削除に失敗しました: ${errorText}`);
+				return;
+			}
+
+			console.log('削除成功、メモリスト更新中...');
+			await fetchMemoListForTodo(todoId);
+			console.log('メモリスト更新完了');
+		} catch (e) {
+			console.error('削除処理エラー:', e);
+			alert('メモの削除に失敗しました');
+		}
 	};
 
 	const deleteMemo = (todoId: string) => {
@@ -463,8 +683,8 @@ export default function SortableSubTask({
 							todos={todos}
 							subtaskId={subtask.id}
 							isEditing={isEditing}
-							editingTodoTitles={editingTodoTitles}
-							editingTodoEstimates={editingTodoEstimates}
+							editingTodoTitles={editingTodoTitles[subtask.id] ?? {}}
+							editingTodoEstimates={editingTodoEstimates[subtask.id] ?? {}}
 							onToggle={onToggleTodo}
 							onTitleChange={onTodoTitleChange}
 							onEstimateChange={onTodoEstimateChange}
@@ -474,6 +694,7 @@ export default function SortableSubTask({
 							onAddFile={handleAddFile}
 							showAddOptions={showAddOptions}
 							onToggleAddOptions={toggleAddOptions}
+							// メモ・ファイル表示のためのprops
 							todoMemos={todoMemos}
 							expandedMemos={expandedMemos}
 							editingMemos={editingMemos}
@@ -483,9 +704,13 @@ export default function SortableSubTask({
 							onImageDelete={handleImageDelete}
 							onToggleMemoExpanded={toggleMemoExpanded}
 							onToggleMemoEditing={toggleMemoEditing}
-							onSaveMemo={saveMemo}
+							onSaveMemo={saveMemoAndRefresh}
 							onCancelMemoEdit={cancelMemoEdit}
 							onDeleteMemo={deleteMemo}
+							memoLists={memoLists}
+							onServerDeleteMemo={handleServerDeleteMemo}
+							onBeginEditExistingMemo={beginEditExistingMemo}
+							editingMemoTarget={editingMemoTarget}
 						/>
 					)}
 

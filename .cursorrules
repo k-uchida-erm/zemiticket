@@ -142,6 +142,48 @@ export function useCustomHook(dependency: string) {
 - [ ] パフォーマンスが考慮されている
 - [ ] アクセシビリティが考慮されている
 
+## ⚠️ ビルドエラー回避の注意点
+
+### ESLintエラー対策
+- **未使用変数**: 使用しない変数は`_`プレフィックスを付ける（例: `_unusedVar`）
+- **未使用パラメータ**: 関数の未使用パラメータも`_`プレフィックスを付ける（例: `_event`）
+- **未使用import**: 使用しないimportは削除する
+- **console.log**: 本番環境では削除するか、開発時のみの条件分岐を追加
+- **displayName**: `forwardRef`コンポーネントには必ず`displayName`を設定する
+
+### TypeScriptエラー対策
+- **`any`型禁止**: 必ず具体的な型を定義する
+- **型ガード**: オブジェクトのプロパティ存在チェックには型ガード関数を使用
+- **APIルート**: Next.js App Routerの正しいシグネチャを使用
+  ```typescript
+  // ❌ 間違い
+  export async function GET(request: Request, { params }: { params: { id: string } }) {}
+
+  // ✅ 正しい
+  export async function GET(request: Request) {
+    const url = new URL(request.url);
+    const id = url.pathname.split('/').pop();
+  }
+  ```
+- **型アサーション**: `as any`ではなく具体的な型を指定
+  ```typescript
+  // ❌ 間違い
+  const file = existingFile as any;
+
+  // ✅ 正しい
+  const file = existingFile as File & { existingUrl?: string };
+  ```
+
+### React Hooksエラー対策
+- **依存配列**: `useEffect`、`useCallback`、`useMemo`の依存配列を正確に設定
+- **不要な依存関係**: 不要な依存関係は削除する
+- **複雑な依存関係**: 複雑な式は別変数に抽出してから依存配列に追加
+
+### ビルド前チェック
+- **`make build`実行**: コード変更後は必ずビルドを実行してエラーを確認
+- **段階的修正**: エラーは一度に1つずつ修正し、修正後に再ビルド
+- **型定義確認**: 新しいプロパティを使用する際は型定義を確認・更新
+
 ## 📚 参考資料
 
 - Next.js 15 ドキュメント

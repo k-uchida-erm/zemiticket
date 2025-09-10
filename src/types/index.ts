@@ -77,3 +77,6 @@ export interface ParentTask extends Task {
 	sub_tasks?: SubTask[];
 	children?: SubTask[];
 }
+
+// 新しい無限階層チケットシステムの型定義をエクスポート
+export * from './ticket';

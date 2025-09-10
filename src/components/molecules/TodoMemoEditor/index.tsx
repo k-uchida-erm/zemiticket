@@ -1,4 +1,5 @@
-import RichTextEditor from '../../atoms/RichTextEditor';
+import { forwardRef, useImperativeHandle, useRef } from 'react';
+import RichTextEditor, { RichTextEditorRef } from '../../atoms/RichTextEditor';
 
 interface TodoMemoEditorProps {
 	todoId: string;
@@ -8,22 +9,47 @@ interface TodoMemoEditorProps {
 	onImagePaste?: (todoId: string, file: File) => void;
 }
 
-export default function TodoMemoEditor({
+// 外部から呼び出せるメソッドの型定義
+export interface TodoMemoEditorRef {
+	insertFile: (file: File) => void;
+}
+
+const TodoMemoEditor = forwardRef<TodoMemoEditorRef, TodoMemoEditorProps>(({
 	todoId,
 	html,
 	onContentChange,
 	onHtmlChange,
 	onImagePaste,
-}: TodoMemoEditorProps) {
+}, ref) => {
+	const richTextEditorRef = useRef<RichTextEditorRef>(null);
+
+	// refを通じて外部からアクセス可能なメソッドを提供
+	useImperativeHandle(ref, () => ({
+		insertFile: (file: File) => {
+			console.log('TodoMemoEditor.insertFile呼び出し:', file.name);
+			if (richTextEditorRef.current) {
+				console.log('RichTextEditorのinsertFileIntoEditorを呼び出し');
+				richTextEditorRef.current.insertFileIntoEditor(file);
+			} else {
+				console.error('RichTextEditorのrefが設定されていません');
+			}
+		}
+	}), []);
+
 	return (
 		<div className='space-y-2'>
 			<RichTextEditor
+				ref={richTextEditorRef}
 				content={html}
 				todoId={todoId}
-				onContentChange={(text) => onContentChange(todoId, text)}
-				onHtmlChange={onHtmlChange ? (htmlStr) => onHtmlChange(todoId, htmlStr) : undefined}
+				onContentChange={(content: string) => onContentChange(todoId, content)}
+				onHtmlChange={(html: string) => onHtmlChange?.(todoId, html)}
 				onImagePaste={onImagePaste}
 			/>
 		</div>
 	);
-}
+});
+
+TodoMemoEditor.displayName = 'TodoMemoEditor';
+
+export default TodoMemoEditor;

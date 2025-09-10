@@ -1,86 +1,65 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import LoadingSpinner from '../components/atoms/LoadingSpinner';
-import HomeLayout from '../components/organisms/HomeLayout';
-import {
-    mockActiveGroups,
-    mockOthersGrouped,
-    mockSubmittingTickets,
-} from '../data/mockData';
-import { ParentTask, SubTask } from '../types';
+import React, { useEffect, useState } from 'react';
+import NewHomeLayout from '../components/templates/NewHomeLayout';
+import { Ticket } from '../types';
 
-export default function Home() {
-	const [activeGroups, setActiveGroups] = useState<
-		{ parent: ParentTask; children: SubTask[] }[]
-	>([]);
-	const [submittingTickets, setSubmittingTickets] = useState<
-		Array<ParentTask & { children?: SubTask[] }>
-	>([]);
-	const [othersGrouped, setOthersGrouped] = useState<
-		{ user: string; tickets: Array<ParentTask & { children?: SubTask[] }> }[]
-	>([]);
-	const [isLoading, setIsLoading] = useState(true);
-	const [useMockData, _setUseMockData] = useState(false);
+interface ActiveGroup {
+	epic: string;
+	researchTopicId?: string | null;
+	tickets: Ticket[];
+}
 
-	// データ取得
+interface OthersGroup {
+	user: string;
+	tickets: Ticket[];
+}
+
+interface HomeApiResponse {
+	activeGroups: ActiveGroup[];
+	submittingTickets: Ticket[];
+	othersGrouped: OthersGroup[];
+	researchTopicColors?: Record<string, string>;
+}
+
+export default function Home(): React.ReactElement {
+	const [activeGroups, setActiveGroups] = useState<ActiveGroup[]>([]);
+	const [submittingTickets, setSubmittingTickets] = useState<Ticket[]>([]);
+	const [othersGrouped, setOthersGrouped] = useState<OthersGroup[]>([]);
+	const [researchTopicColors, setResearchTopicColors] = useState<Record<string, string>>({});
+	const [isLoading, setIsLoading] = useState<boolean>(true);
+
+
 	useEffect(() => {
-		const fetchHomeData = async () => {
+		const fetchHomeData = async (): Promise<void> => {
 			try {
 				setIsLoading(true);
 				const response = await fetch('/api/home');
 				if (!response.ok) {
 					throw new Error('Failed to fetch home data');
 				}
-				const result = await response.json();
-
-				// データの安全性を確保
-				setActiveGroups(result.activeGroups || []);
-				setSubmittingTickets(result.submittingTickets || []);
-				setOthersGrouped(result.othersGrouped || []);
-			} catch (error) {
-				console.error('Error fetching home data:', error);
-				// エラー時はモックデータを使用
-				setActiveGroups(mockActiveGroups);
-				setSubmittingTickets(mockSubmittingTickets);
-				setOthersGrouped(mockOthersGrouped);
+				const result: HomeApiResponse = await response.json();
+				setActiveGroups(result.activeGroups ?? []);
+				setSubmittingTickets(result.submittingTickets ?? []);
+				setOthersGrouped(result.othersGrouped ?? []);
+				setResearchTopicColors(result.researchTopicColors ?? {});
+			} catch {
+				// noop
 			} finally {
 				setIsLoading(false);
 			}
 		};
 
 		fetchHomeData();
-
-		// データ更新イベントを監視
-		const handleDataUpdate = () => {
-			fetchHomeData();
-		};
-
-		window.addEventListener('ticketDataUpdated', handleDataUpdate);
-
-		return () => {
-			window.removeEventListener('ticketDataUpdated', handleDataUpdate);
-		};
 	}, []);
 
-	// モックデータを使用する場合
-	useEffect(() => {
-		if (useMockData) {
-			setActiveGroups(mockActiveGroups);
-			setSubmittingTickets(mockSubmittingTickets);
-			setOthersGrouped(mockOthersGrouped);
-		}
-	}, [useMockData]);
-
-	if (isLoading) {
-		return <LoadingSpinner />;
-	}
-
 	return (
-		<HomeLayout
+		<NewHomeLayout
 			activeGroups={activeGroups}
 			submittingTickets={submittingTickets}
 			othersGrouped={othersGrouped}
+			isLoading={isLoading}
+			researchTopicColors={researchTopicColors}
 		/>
 	);
 }

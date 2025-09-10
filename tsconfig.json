@@ -3,7 +3,7 @@
     "lib": [
       "dom",
       "dom.iterable",
-      "es6"
+      "es2022"
     ],
     "allowJs": true,
     "skipLibCheck": true,
@@ -28,6 +28,8 @@
       ]
     },
     "types": [
+      "react",
+      "react-dom",
       "jest",
       "node"
     ],
