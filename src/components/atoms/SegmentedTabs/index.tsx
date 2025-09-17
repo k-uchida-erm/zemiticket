@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-export type SegmentedOptionValue = 'all' | 'todo' | 'in_progress' | 'review' | 'done' | 'MY' | 'ALL';
+export type SegmentedOptionValue = string;
 
 interface SegmentedOption {
 	value: SegmentedOptionValue;
@@ -13,48 +13,35 @@ interface SegmentedTabsProps {
 	options: SegmentedOption[];
 	selected: SegmentedOptionValue;
 	onChange: (value: SegmentedOptionValue) => void;
-	className?: string;
-	variant?: 'plain' | 'filled';
-	size?: 'sm' | 'compact' | 'md';
+	size?: 'compact' | 'normal';
 }
 
 export default function SegmentedTabs({
 	options,
 	selected,
 	onChange,
-	className = '',
-	variant = 'plain',
-	size = 'md'
+	size = 'normal'
 }: SegmentedTabsProps): React.ReactElement {
-	const sizeClasses =
-		size === 'sm'
-			? 'h-5 text-[10px] min-w-[56px]'
-			: size === 'compact'
-				? 'h-5 text-[11px] min-w-[64px]'
-				: 'h-6 text-[12px] min-w-[72px]';
+	const baseClasses = size === 'compact' ? 'text-[10px] px-3 py-0.5' : 'text-[11px] px-4 py-0.5';
+
 	return (
-		<div className={`inline-flex items-stretch gap-1 ${className}`} role="tablist">
-			{options.map((opt: SegmentedOption, _idx: number) => {
-				const isSelected: boolean = selected === opt.value;
-				return (
-					<button
-						key={opt.value}
-						type="button"
-						role="tab"
-						aria-selected={isSelected}
-						onClick={() => onChange(opt.value)}
-						className={`${sizeClasses} px-3 leading-none focus:outline-none transition-colors basis-0 grow whitespace-nowrap justify-center inline-flex items-center rounded-md ${
-							variant === 'filled'
-								? (isSelected ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900')
-								: (isSelected ? 'bg-white text-neutral-900' : 'text-neutral-600 hover:text-neutral-900')
-						}`}
-					>
-						{opt.label}
-					</button>
-				);
-			})}
+		<div className="inline-flex bg-neutral-100 rounded-md p-0.5 max-w-full">
+			{options.map((option) => (
+				<button
+					key={option.value}
+					onClick={() => onChange(option.value)}
+					className={`
+						${baseClasses}
+						flex-1 rounded-sm font-medium transition-colors whitespace-nowrap text-center flex items-center justify-center
+						${selected === option.value
+							? 'bg-white text-neutral-900 shadow-sm'
+							: 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50'
+						}
+					`}
+				>
+					{option.label}
+				</button>
+			))}
 		</div>
 	);
 }
-
-

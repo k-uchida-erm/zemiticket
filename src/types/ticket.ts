@@ -27,6 +27,11 @@ export interface Ticket {
   children?: Ticket[];  // 子チケット
   todos?: Todo[];  // このチケットに直接属するTODO
   parent?: Ticket;  // 親チケット（必要に応じて）
+  assigned_user?: {  // アサインされたユーザー情報
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 export interface Todo {
@@ -105,4 +110,62 @@ export interface TicketFilters {
 export interface TicketSort {
   field: 'title' | 'status' | 'priority' | 'due_date' | 'created_at' | 'updated_at' | 'level';
   direction: 'asc' | 'desc';
+}
+
+// APIレスポンス用の型
+export interface ActiveGroup {
+  epic: string;
+  researchTopicId?: string | null;
+  tickets: Ticket[];
+}
+
+export interface OthersGroup {
+  user: string;
+  tickets: Ticket[];
+}
+
+export interface ResearchTopic {
+  id: string;
+  name: string;
+  color: string;
+  display_name: string;
+}
+
+export interface HomeApiResponse {
+  activeGroups: ActiveGroup[];
+  submittingTickets: Ticket[];
+  othersGrouped: OthersGroup[];
+  researchTopics: ResearchTopic[];
+  researchTopicColors?: Record<string, string>;
+}
+
+export interface SidebarData {
+  researchTopics: ResearchTopic[];
+  members: {
+    grade: string;
+    members: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+    }[];
+  }[];
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserWorkspace {
+  id: string;
+  user_id: string;
+  workspace_id: string;
+  role: 'owner' | 'admin' | 'member';
+  created_at: string;
+  updated_at: string;
+  workspace?: Workspace;
 }

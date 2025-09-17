@@ -1,3 +1,4 @@
+import { Inter } from 'next/font/google';
 import React from 'react';
 import AppShell from '../components/templates/AppShell';
 import './globals.css';
@@ -7,6 +8,8 @@ export const metadata = {
   description: 'Zemi ticket management',
 }
 
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+
 export default function RootLayout({
   children,
 }: {
@@ -14,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body>
+      <body className={inter.className}>
         <AppShell>
           {children}
         </AppShell>

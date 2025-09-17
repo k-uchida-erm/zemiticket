@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Ticket } from '../../../types';
-import LoadingSpinner from '../../atoms/LoadingSpinner';
+import SegmentedTabs, { SegmentedOptionValue } from '../../atoms/SegmentedTabs';
 import EpicSection from '../EpicSection';
 
 interface ActiveGroup {
@@ -20,40 +20,57 @@ interface TicketListSectionProps {
 	activeGroups: ActiveGroup[];
 	submittingTickets: Ticket[];
 	othersGrouped: OthersGroup[];
-	isLoading: boolean;
+	isLoading?: boolean;
 	researchTopicColors?: Record<string, string>;
+	onStatusChange?: (ticketId: string, newStatus: 'todo' | 'in_progress' | 'review' | 'done') => void;
 }
 
-type EpicGroup = { epic: string; items: Ticket[] };
+type EpicGroup = { epic: string; items: Ticket[]; researchTopicId?: string | null };
+type StatusFilter = 'all' | 'todo' | 'in_progress' | 'review' | 'done';
 
 export default function TicketListSection({
 	activeGroups,
 	submittingTickets,
 	othersGrouped,
-	isLoading,
-	researchTopicColors
+	isLoading: _isLoading = false,
+	researchTopicColors,
+	onStatusChange
 }: TicketListSectionProps): React.ReactElement {
-	const _parents: Ticket[] = useMemo<Ticket[]>(() => {
+	const [statusFilter, setStatusFilter] = useState<StatusFilter>('in_progress');
+	// 全てのチケットを取得（依存関係チェック用）
+	const allTickets: Ticket[] = useMemo<Ticket[]>(() => {
 		const byId: Map<string, Ticket> = new Map<string, Ticket>();
+
+		// activeGroupsからチケットを取得
 		activeGroups.forEach((g: ActiveGroup) => {
 			g.tickets.forEach((ticket: Ticket) => {
 				byId.set(ticket.id, ticket);
 			});
 		});
+
+		// submittingTicketsからチケットを取得
 		submittingTickets.forEach((t: Ticket) => {
 			byId.set(t.id, t);
 		});
+
+		// othersGroupedからチケットを取得
+		othersGrouped.forEach((group: OthersGroup) => {
+			group.tickets.forEach((ticket: Ticket) => {
+				byId.set(ticket.id, ticket);
+			});
+		});
+
 		return Array.from(byId.values());
-	}, [activeGroups, submittingTickets]);
+	}, [activeGroups, submittingTickets, othersGrouped]);
 
 	const groupByEpic = (items: Ticket[]): EpicGroup[] => {
-		const map = new Map<string, Ticket[]>();
+		const map = new Map<string, { items: Ticket[]; researchTopicId?: string | null }>();
 		items.forEach((p: Ticket) => {
-						const key = p.research_topic_id ?? '未分類';
-			if (!map.has(key)) map.set(key, []);
-			map.get(key)!.push(p);
+			const key = p.research_topic_id ?? '未分類';
+			if (!map.has(key)) map.set(key, { items: [], researchTopicId: p.research_topic_id || null });
+			map.get(key)!.items.push(p);
 		});
-		return Array.from(map.entries()).map(([epic, vals]) => ({ epic, items: vals }));
+		return Array.from(map.entries()).map(([epic, data]) => ({ epic, items: data.items, researchTopicId: data.researchTopicId }));
 	};
 
 	const myGroups = useMemo<EpicGroup[]>(() => {
@@ -73,21 +90,47 @@ export default function TicketListSection({
 
 	return (
 		<section className="mb-0">
+			{/* 共通のセグメントボタン */}
+			<div className="flex justify-start mb-4 px-2 max-w-2xl">
+				<SegmentedTabs
+					options={[
+						{ value: 'all', label: 'All' },
+						{ value: 'todo', label: 'To do' },
+						{ value: 'in_progress', label: 'In progress' },
+						{ value: 'review', label: 'In Review' },
+						{ value: 'done', label: 'Done' },
+					] as { value: SegmentedOptionValue; label: string }[]}
+					selected={statusFilter as SegmentedOptionValue}
+					onChange={(val: SegmentedOptionValue) => setStatusFilter(val as StatusFilter)}
+					size="compact"
+				/>
+			</div>
+
 			<div className="divide-y divide-neutral-100">
-				{isLoading ? (
-					<div className="flex items-center justify-center py-10"><LoadingSpinner /></div>
-				) : (
-					<ul className="relative">
-						{/* My section */}
-						<EpicSection epicGroups={myGroups} sectionTitle="My" researchTopicColors={researchTopicColors} />
+				<ul className="relative">
+					{/* My section */}
+					<EpicSection
+						epicGroups={myGroups}
+						sectionTitle="My"
+						researchTopicColors={researchTopicColors}
+						statusFilter={statusFilter}
+						onStatusChange={onStatusChange}
+						allTickets={allTickets}
+					/>
 
-						{/* spacer between My and Others */}
-						<li aria-hidden className="h-3" />
+					{/* spacer between My and Others */}
+					<li aria-hidden className="h-3" />
 
-						{/* Others section */}
-						<EpicSection epicGroups={otherGroups} sectionTitle="Others" researchTopicColors={researchTopicColors} />
-					</ul>
-				)}
+					{/* Others section */}
+					<EpicSection
+						epicGroups={otherGroups}
+						sectionTitle="Others"
+						researchTopicColors={researchTopicColors}
+						statusFilter={statusFilter}
+						onStatusChange={onStatusChange}
+						allTickets={allTickets}
+					/>
+				</ul>
 			</div>
 		</section>
 	);

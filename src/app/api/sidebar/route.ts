@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '../../../lib/supabase/server';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get('workspaceId') || '00000000-0000-0000-0000-000000000001';
 
     // ワークスペース情報を取得
     const { data: workspaces, error: workspacesError } = await supabase
       .from('workspaces')
       .select('id, name, description')
-      .eq('id', '00000000-0000-0000-0000-000000000001');
+      .eq('id', workspaceId);
 
     if (workspacesError) {
       console.error('Workspaces error:', workspacesError);
@@ -28,7 +30,7 @@ export async function GET() {
           grade
         )
       `)
-      .eq('workspace_id', '00000000-0000-0000-0000-000000000001');
+      .eq('workspace_id', workspaceId);
 
     if (membersError) {
       console.error('Workspace members error:', membersError);
@@ -43,7 +45,7 @@ export async function GET() {
     const { data: researchTopics, error: researchTopicsError } = await supabase
       .from('research_topics')
       .select('id, name, display_name, color')
-      .eq('workspace_id', '00000000-0000-0000-0000-000000000001')
+      .eq('workspace_id', workspaceId)
       .order('name');
 
     if (researchTopicsError) {

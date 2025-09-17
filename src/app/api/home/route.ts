@@ -42,6 +42,8 @@ interface SupabaseTodo {
 
 // SupabaseデータをTicket型に変換する関数
 function convertToTicket(supabaseTicket: Record<string, unknown>): Ticket {
+	const users = supabaseTicket.users as Record<string, unknown> | null;
+
 	return {
 		id: supabaseTicket.id as string,
 		workspace_id: supabaseTicket.workspace_id as string,
@@ -53,7 +55,7 @@ function convertToTicket(supabaseTicket: Record<string, unknown>): Ticket {
 		status: (supabaseTicket.status as Ticket['status']) || 'todo',
 		priority: (supabaseTicket.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium',
 		user_id: (supabaseTicket.user_id as string) || undefined,
-		due_date: (supabaseTicket.due_date as string) || undefined,
+		due_date: supabaseTicket.due_date ? (supabaseTicket.due_date as string) : undefined,
 		progress_percentage: (supabaseTicket.progress_percentage as number) || 0,
 		estimate_hours: (supabaseTicket.estimate_hours as number) || undefined,
 		actual_hours: (supabaseTicket.actual_hours as number) || undefined,
@@ -66,6 +68,11 @@ function convertToTicket(supabaseTicket: Record<string, unknown>): Ticket {
 		level: (supabaseTicket.level as number) || 0,
 		children: [],
 		todos: [],
+		assigned_user: users ? {
+			id: users.id as string,
+			name: users.name as string,
+			email: users.email as string
+		} : undefined,
 	};
 }
 
@@ -126,15 +133,27 @@ export async function GET(request: Request) {
 
 		const url = new URL(request.url);
 		const scopeParam = url.searchParams.get('scope');
+		const userIdParam = url.searchParams.get('userId');
+		const workspaceIdParam = url.searchParams.get('workspaceId');
 		const scope = (scopeParam === 'all' ? 'all' : 'my') as 'all' | 'my';
+		const currentUserId = userIdParam || 'b4c82595-bdef-4724-abbe-d7636f06defc'; // デフォルトは田中太郎
+		const currentWorkspaceId = workspaceIdParam || '00000000-0000-0000-0000-000000000001'; // デフォルトはK_lab
 
-		// チケットをすべて取得（ワークスペース内、階層・状態に関係なく）
+		// チケットをすべて取得（指定されたワークスペース内、階層・状態に関係なく）
 		const { data: allRawTickets, error: allTicketsError } = await supabase
 			.from('tickets')
-			.select('*')
-			.eq('workspace_id', '00000000-0000-0000-0000-000000000001')
+			.select(`
+				*,
+				users:user_id (
+					id,
+					name,
+					email
+				)
+			`)
+			.eq('workspace_id', currentWorkspaceId)
 			.order('level', { ascending: true })
 			.order('sort_order', { ascending: true })
+			.order('due_date', { ascending: true, nullsLast: true })
 			.order('updated_at', { ascending: false });
 
 		if (allTicketsError) {
@@ -149,17 +168,8 @@ export async function GET(request: Request) {
 
 		let baseTickets = convertedAllTickets;
 		if (scope === 'my') {
-			const { data: workspaceMembers } = await supabase
-				.from('workspace_members')
-				.select('user_id, users:user_id(id)')
-				.eq('workspace_id', '00000000-0000-0000-0000-000000000001')
-				.limit(1);
-			const currentUserId = workspaceMembers && workspaceMembers.length > 0
-				? (workspaceMembers[0].users?.id as string | undefined) || workspaceMembers[0].user_id
-				: undefined;
-			if (currentUserId) {
-				baseTickets = convertedAllTickets.filter(t => t.user_id === currentUserId);
-			}
+			// 指定されたユーザーIDでフィルタリング
+			baseTickets = convertedAllTickets.filter(t => t.user_id === currentUserId);
 		}
 
 		const hierarchyTickets = buildHierarchy(baseTickets);
@@ -168,7 +178,7 @@ export async function GET(request: Request) {
 		const { data: researchTopics, error: researchTopicsError } = await supabase
 			.from('research_topics')
 			.select('id, name, display_name, color, workspace_id')
-			.eq('workspace_id', '00000000-0000-0000-0000-000000000001')
+			.eq('workspace_id', currentWorkspaceId)
 			.order('name');
 
 		if (researchTopicsError) {
@@ -209,15 +219,18 @@ export async function GET(request: Request) {
 		const activeGroups = Array.from(activeTicketsByResearchTopic.entries()).map(([researchTopicName, tickets]) => {
 			// 研究テーマIDを取得（最初のチケットから）
 			const researchTopicId = tickets.length > 0 ? tickets[0].research_topic_id : null;
-			return {
+					return {
 				epic: researchTopicName,
 				researchTopicId: researchTopicId,
 				tickets: tickets
-			};
+					};
 		});
 
 		return NextResponse.json({
 			activeGroups,
+			submittingTickets: [],
+			othersGrouped: [],
+			researchTopics: researchTopics || [],
 			researchTopicColors: Object.fromEntries(researchTopicColorMap),
 		});
 	} catch (error) {
