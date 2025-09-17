@@ -54,7 +54,9 @@ export default function MemberPage({ params }: MemberPageProps): React.ReactElem
 				setMember(foundMember);
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'An unknown error occurred');
-				console.error('Failed to fetch member data:', err);
+				if (process.env.NODE_ENV === 'development') {
+					console.error('Failed to fetch member data:', err);
+				}
 			} finally {
 				setIsLoading(false);
 			}

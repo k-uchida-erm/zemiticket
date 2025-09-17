@@ -47,13 +47,17 @@ export default function TicketItem({
 
   const handleStatusClick = () => {
     // debug
-    console.log('[TicketItem] toggle status popup', { ticketId: ticket.id, current: ticket.status });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[TicketItem] toggle status popup', { ticketId: ticket.id, current: ticket.status });
+    }
     setShowStatusPopup(!showStatusPopup);
   };
 
   const handleStatusChange = async (newStatus: TicketStatus) => {
     // debug
-    console.log('[TicketItem] handleStatusChange start', { ticketId: ticket.id, from: ticket.status, to: newStatus });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[TicketItem] handleStatusChange start', { ticketId: ticket.id, from: ticket.status, to: newStatus });
+    }
 
     // 親チケットをdoneにする時は、直下の未完了サブチケットがあればモーダル表示（先に反映しない）
     if (newStatus === 'done' && subTickets && subTickets.length > 0) {
@@ -73,10 +77,14 @@ export default function TicketItem({
     // 子操作で親がdoneのときにin_progressへ戻すケースはモーダルなしで自動降格
     if (newStatus === 'in_progress' && ticket.parent_id) {
       const ancestors = getAncestorsToDowngrade(ticket, allTickets);
-      console.log('[TicketItem] ancestors to downgrade', ancestors.map(a => ({ id: a.id, title: a.title, status: a.status })));
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TicketItem] ancestors to downgrade', ancestors.map(a => ({ id: a.id, title: a.title, status: a.status })));
+      }
       if (ancestors.length > 0) {
         try {
-          console.log('[TicketItem] POST update-status (auto downgrade ancestors)');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[TicketItem] POST update-status (auto downgrade ancestors)');
+          }
           const response = await fetch('/api/tickets/update-status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -87,14 +95,18 @@ export default function TicketItem({
               affectedTicketIds: ancestors.map(t => t.id)
             })
           });
-          console.log('[TicketItem] update-status response', response.status);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[TicketItem] update-status response', response.status);
+          }
           if (response.ok) {
             if (onStatusChange) onStatusChange(ticket.id, 'in_progress', ancestors.map(t => t.id));
             setShowStatusPopup(false);
             return;
           }
-        } catch (_) {
-          console.error('[TicketItem] update-status failed, fallback to normal flow');
+        } catch {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[TicketItem] update-status failed, fallback to normal flow');
+          }
           // フォールバック: 通常フローへ
         }
       }
@@ -102,14 +114,20 @@ export default function TicketItem({
 
     // ステータス変更の可否をチェック
     const result = canChangeStatus(ticket, newStatus, allTickets);
-    console.log('[TicketItem] canChangeStatus result', { result });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[TicketItem] canChangeStatus result', { result });
+    }
 
     if (!result.success) {
       if (result.requiresConfirmation) {
-        console.log('[TicketItem] requiresConfirmation true');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[TicketItem] requiresConfirmation true');
+        }
         // 親をdoneにするが子が未完了 → 子を一括done（親操作のみモーダル）
         const impact = calculateStatusChangeImpact(ticket, newStatus, allTickets);
-        console.log('[TicketItem] calculated impact', { direct: impact.directImpact.map(t => t.id), indirect: impact.indirectImpact.map(t => t.id) });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[TicketItem] calculated impact', { direct: impact.directImpact.map(t => t.id), indirect: impact.indirectImpact.map(t => t.id) });
+        }
         setAffectedTickets(impact.directImpact);
         setPendingStatusChange(newStatus);
         setModalMessage(`サブタスクが未完了のため、親チケットを完了にできません。\n未完了のサブタスク: ${impact.directImpact.length}件\n\nこれらのサブタスクも同時に完了にしますか？`);
@@ -119,7 +137,9 @@ export default function TicketItem({
       }
 
       // 確認不要の失敗は簡易通知
-      console.warn('[TicketItem] change blocked without confirmation', result.message);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[TicketItem] change blocked without confirmation', result.message);
+      }
       alert(result.message);
       setShowStatusPopup(false);
       return;
@@ -127,7 +147,9 @@ export default function TicketItem({
 
     // 通常のステータス変更（楽観的更新 → 非同期POST）
     if (onStatusChange) {
-      console.log('[TicketItem] notifying parent onStatusChange (optimistic)', { id: ticket.id, newStatus });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TicketItem] notifying parent onStatusChange (optimistic)', { id: ticket.id, newStatus });
+      }
       // 子チケットの即時反映
       onStatusChange(ticket.id, newStatus);
 
@@ -138,15 +160,21 @@ export default function TicketItem({
 
     // 非同期でAPI更新（失敗時はログのみ）
     try {
-      console.log('[TicketItem] POST update-status (normal)');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TicketItem] POST update-status (normal)');
+      }
       const res = await fetch('/api/tickets/update-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticketId: ticket.id, status: newStatus })
       });
-      console.log('[TicketItem] update-status response (normal)', res.status);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TicketItem] update-status response (normal)', res.status);
+      }
     } catch (e) {
-      console.error('[TicketItem] update-status error (normal)', e);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[TicketItem] update-status error (normal)', e);
+      }
     }
   };
 
@@ -161,7 +189,9 @@ export default function TicketItem({
 
     try {
       const affectedIds = affectedTickets.map(t => t.id);
-      console.log('[TicketItem] confirmStatusChange (optimistic first)', { ticketId: ticket.id, to: pendingStatusChange, affected: affectedIds });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TicketItem] confirmStatusChange (optimistic first)', { ticketId: ticket.id, to: pendingStatusChange, affected: affectedIds });
+      }
 
       // 楽観的反映（親にも伝搬）
       setLocalStatus(pendingStatusChange as TicketStatus);
@@ -185,13 +215,19 @@ export default function TicketItem({
           affectedTicketIds: affectedIds
         }),
       });
-      console.log('[TicketItem] confirm update-status response', response.status);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TicketItem] confirm update-status response', response.status);
+      }
       if (!response.ok) {
-        console.error('Failed to update ticket status');
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to update ticket status');
+        }
         alert('ステータスの更新に失敗しました');
       }
     } catch (error) {
-      console.error('Error updating ticket status:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating ticket status:', error);
+      }
       alert('ステータスの更新中にエラーが発生しました');
     }
   };

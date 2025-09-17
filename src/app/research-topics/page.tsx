@@ -7,7 +7,7 @@ import NewHomeLayout from '../../components/templates/NewHomeLayout';
 import ResearchTopicsTemplate from '../../components/templates/ResearchTopicsTemplate';
 import { useAuth } from '../../contexts/AuthContext';
 import { computeAggregateStatusFromStatuses, TicketStatus } from '../../lib/utils/ticketStatusUtils';
-import { HomeApiResponse } from '../../types';
+import { HomeApiResponse, Ticket } from '../../types';
 
 export default function ResearchTopicsPage(): React.ReactElement {
 	const [homeData, setHomeData] = useState<HomeApiResponse | null>(null);
@@ -31,7 +31,9 @@ export default function ResearchTopicsPage(): React.ReactElement {
 			setHomeData(data);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'An unknown error occurred');
-			console.error('Failed to fetch home data:', err);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Failed to fetch home data:', err);
+			}
 		} finally {
 			setIsLoading(false);
 		}
@@ -42,35 +44,39 @@ export default function ResearchTopicsPage(): React.ReactElement {
 		setHomeData((prev) => {
 			if (!prev) return prev;
 			const ids = new Set<string>([ticketId, ...(affectedIds || [])]);
-			const updateArray = (arr: Array<{ id: string; status: string }> | undefined) =>
-				(arr || []).map((t: any) => (ids.has(t.id) ? { ...t, status: newStatus } : t));
+		const updateArray = (arr: Ticket[] | undefined) =>
+			(arr || []).map((t: Ticket) => (ids.has(t.id) ? { ...t, status: newStatus as Ticket['status'] } : t));
 			// まず対象チケットの楽観的更新を適用
 			const next = {
 				...prev,
 				activeGroups: (prev.activeGroups || []).map((g) => ({
 					...g,
-					tickets: updateArray(g.tickets) as any
+					tickets: updateArray(g.tickets)
 				})),
-				submittingTickets: updateArray(prev.submittingTickets) as any,
+				submittingTickets: updateArray(prev.submittingTickets),
 				othersGrouped: (prev.othersGrouped || []).map((g) => ({
 					...g,
-					tickets: updateArray(g.tickets) as any
+					tickets: updateArray(g.tickets)
 				}))
 			};
 
 			// 親の即時再計算（全done→done、全todo→todo、その他→in_progress）を祖先まで反復
 			const collectAll = (): Array<{ id: string; status: TicketStatus; parent_id?: string | null }> => {
-				const a = (next.activeGroups || []).flatMap((g) => (g.tickets as any[] | undefined) || []);
-				const b = ((next.submittingTickets as any[] | undefined) || []);
-				const c = (next.othersGrouped || []).flatMap((g) => (g.tickets as any[] | undefined) || []);
-				return [...a, ...b, ...c] as Array<{ id: string; status: TicketStatus; parent_id?: string | null }>;
+				const a = (next.activeGroups || []).flatMap((g) => g.tickets || []);
+				const b = next.submittingTickets || [];
+				const c = (next.othersGrouped || []).flatMap((g) => g.tickets || []);
+				return [...a, ...b, ...c].map(ticket => ({
+					id: ticket.id,
+					status: ticket.status as TicketStatus,
+					parent_id: ticket.parent_id
+				}));
 			};
 			const all = collectAll();
 			const statusMap = new Map<string, TicketStatus>();
 			const parentMap = new Map<string, string | null | undefined>();
 			for (const t of all) {
-				statusMap.set(t.id, t.status as TicketStatus);
-				parentMap.set(t.id, (t as any).parent_id as string | null | undefined);
+				statusMap.set(t.id, t.status);
+				parentMap.set(t.id, t.parent_id);
 			}
 
 			let changed = true;
@@ -79,11 +85,14 @@ export default function ResearchTopicsPage(): React.ReactElement {
 				// parent_id -> child statuses
 				const childrenStatuses = new Map<string, TicketStatus[]>();
 				for (const t of all) {
-					const pid = (t as any).parent_id as string | null | undefined;
+					const pid = t.parent_id;
 					if (!pid) continue;
 					const arr = childrenStatuses.get(pid) || [];
-					arr.push(statusMap.get(t.id) as TicketStatus);
-					childrenStatuses.set(pid, arr);
+					const status = statusMap.get(t.id);
+					if (status) {
+						arr.push(status);
+						childrenStatuses.set(pid, arr);
+					}
 				}
 				for (const [pid, statuses] of childrenStatuses.entries()) {
 					const nextStatus = computeAggregateStatusFromStatuses(statuses);
@@ -95,14 +104,14 @@ export default function ResearchTopicsPage(): React.ReactElement {
 				}
 			}
 
-			const applyStatusMap = (arr: Array<{ id: string; status: string }> | undefined) =>
-				(arr || []).map((t: any) => (statusMap.has(t.id) ? { ...t, status: statusMap.get(t.id) } : t));
+			const applyStatusMap = (arr: Ticket[] | undefined) =>
+				(arr || []).map((t: Ticket) => (statusMap.has(t.id) ? { ...t, status: statusMap.get(t.id) as Ticket['status'] } : t));
 
 			return {
 				...next,
-				activeGroups: (next.activeGroups || []).map((g) => ({ ...g, tickets: applyStatusMap(g.tickets) as any })),
-				submittingTickets: applyStatusMap(next.submittingTickets) as any,
-				othersGrouped: (next.othersGrouped || []).map((g) => ({ ...g, tickets: applyStatusMap(g.tickets) as any })),
+				activeGroups: (next.activeGroups || []).map((g) => ({ ...g, tickets: applyStatusMap(g.tickets) })),
+				submittingTickets: applyStatusMap(next.submittingTickets),
+				othersGrouped: (next.othersGrouped || []).map((g) => ({ ...g, tickets: applyStatusMap(g.tickets) })),
 			};
 		});
 
@@ -127,19 +136,21 @@ export default function ResearchTopicsPage(): React.ReactElement {
 					setHomeData((prev) => {
 						if (!prev) return prev;
 						const byId = new Map<string, 'todo' | 'in_progress' | 'done'>(ancestors.map(a => [a.id, a.status]));
-						const apply = (arr: Array<{ id: string; status: string }> | undefined) =>
-							(arr || []).map((t: any) => (byId.has(t.id) ? { ...t, status: byId.get(t.id) } : t));
+						const apply = (arr: Ticket[] | undefined) =>
+							(arr || []).map((t: Ticket) => (byId.has(t.id) ? { ...t, status: byId.get(t.id) as Ticket['status'] } : t));
 						return {
 							...prev,
-							activeGroups: (prev.activeGroups || []).map(g => ({ ...g, tickets: apply(g.tickets) as any })),
-							submittingTickets: apply(prev.submittingTickets) as any,
-							othersGrouped: (prev.othersGrouped || []).map(g => ({ ...g, tickets: apply(g.tickets) as any })),
+							activeGroups: (prev.activeGroups || []).map(g => ({ ...g, tickets: apply(g.tickets) })),
+							submittingTickets: apply(prev.submittingTickets),
+							othersGrouped: (prev.othersGrouped || []).map(g => ({ ...g, tickets: apply(g.tickets) })),
 						};
 					});
 				}
 			}
 		} catch (error) {
-			console.error('Failed to update ticket status:', error);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Failed to update ticket status:', error);
+			}
 		}
 	};
 

@@ -94,12 +94,14 @@ export function useTicketDetailActions(params: UseTicketDetailActionsParams) {
 						})
 					);
 				} catch (error) {
-					console.error('Error updating todo:', error);
+					if (process.env.NODE_ENV === 'development') {
+						console.error('Error updating todo:', error);
+					}
 					alert('todoの更新に失敗しました。');
 				}
 			};
 		},
-		[subs, parent.id, setSubs]
+		[parent.id, setSubs, subs]
 	);
 
 	const startEditingSub = useCallback(
@@ -209,7 +211,9 @@ export function useTicketDetailActions(params: UseTicketDetailActionsParams) {
 					})
 				);
 			} catch (error) {
-				console.error('Error updating sub task:', error);
+				if (process.env.NODE_ENV === 'development') {
+					console.error('Error updating sub task:', error);
+				}
 				alert('サブタスクの更新に失敗しました。');
 			}
 		},
@@ -223,6 +227,7 @@ export function useTicketDetailActions(params: UseTicketDetailActionsParams) {
 			setEditingTodoTitles,
 			setEditingTodoEstimates,
 			parent.id,
+			subs,
 		]
 	);
 
@@ -240,6 +245,7 @@ export function useTicketDetailActions(params: UseTicketDetailActionsParams) {
 			setEditingSubTitle,
 			setEditingTodoTitles,
 			setEditingTodoEstimates,
+			subs,
 		]
 	);
 
@@ -265,12 +271,14 @@ export function useTicketDetailActions(params: UseTicketDetailActionsParams) {
 						})
 					);
 				} catch (error) {
-					console.error('Error deleting todo:', error);
+					if (process.env.NODE_ENV === 'development') {
+						console.error('Error deleting todo:', error);
+					}
 					alert('todoの削除に失敗しました。');
 				}
 			};
 		},
-		[subs, parent.id, setSubs]
+		[parent.id, setSubs, subs]
 	);
 
 	const reorderSubtasks = useCallback(
@@ -286,7 +294,9 @@ export function useTicketDetailActions(params: UseTicketDetailActionsParams) {
 				);
 				await Promise.all(updatePromises);
 			} catch (error) {
-				console.error('Error reordering subtasks:', error);
+				if (process.env.NODE_ENV === 'development') {
+					console.error('Error reordering subtasks:', error);
+				}
 				alert('サブタスクの並び替えに失敗しました。');
 			}
 		},
@@ -308,7 +318,9 @@ export function useTicketDetailActions(params: UseTicketDetailActionsParams) {
 				);
 				await Promise.all(updatePromises);
 			} catch (error) {
-				console.error('Error reordering todos:', error);
+				if (process.env.NODE_ENV === 'development') {
+					console.error('Error reordering todos:', error);
+				}
 				alert('TODOの並び替えに失敗しました。');
 			}
 		},
@@ -345,7 +357,9 @@ export function useTicketDetailActions(params: UseTicketDetailActionsParams) {
 			if (setNewSubTitle) setNewSubTitle('');
 			if (setNewSubDue) setNewSubDue('');
 		} catch (error) {
-			console.error('Error creating sub task:', error);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Error creating sub task:', error);
+			}
 			alert('サブタスクの作成に失敗しました。');
 		}
 	}, [
@@ -402,7 +416,9 @@ export function useTicketDetailActions(params: UseTicketDetailActionsParams) {
 				if (setNewTodoEstimate)
 					setNewTodoEstimate(p => ({ ...p, [subId]: '' }));
 			} catch (error) {
-				console.error('Error creating todo:', error);
+					if (process.env.NODE_ENV === 'development') {
+						console.error('Error creating todo:', error);
+					}
 				alert('Failed to create todo. Please try again.');
 			}
 		},

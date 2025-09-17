@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { UserWorkspace, Workspace } from '../types';
 
 interface User {
@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userWorkspaces, setUserWorkspaces] = useState<UserWorkspace[]>([]);
 
   // 利用可能なユーザー一覧（開発用）
-  const availableUsers: User[] = [
+  const availableUsers: User[] = useMemo(() => [
     {
       id: 'b4c82595-bdef-4724-abbe-d7636f06defc',
       name: '田中太郎',
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: 'yamada@klab.example.com',
       role: 'teacher'
     }
-  ];
+  ], []);
 
   // ワークスペース情報を取得する関数
   const refreshWorkspaces = React.useCallback(async (): Promise<void> => {
@@ -69,16 +69,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('Failed to fetch workspaces:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to fetch workspaces:', error);
+      }
     }
-	}, [user, currentWorkspace, availableUsers]);
+	}, [user, currentWorkspace]);
 
   useEffect(() => {
     // デフォルトで田中太郎でログイン（開発用）
     const defaultUser = availableUsers[0];
     setUser(defaultUser);
     setIsAuthenticated(true);
-  }, []);
+  }, [availableUsers]);
 
   // ユーザーが変更されたときにワークスペース情報を取得
   useEffect(() => {

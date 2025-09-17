@@ -103,7 +103,9 @@ export default function Sidebar({
 					setSidebarData(data);
 				}
 			} catch (error) {
-				console.error('Failed to fetch sidebar data:', error);
+				if (process.env.NODE_ENV === 'development') {
+					console.error('Failed to fetch sidebar data:', error);
+				}
 			} finally {
 				setIsLoading(false);
 			}
@@ -165,7 +167,9 @@ export default function Sidebar({
 					}
 				}
 			} catch (error) {
-				console.error('Failed to fetch my research topics:', error);
+				if (process.env.NODE_ENV === 'development') {
+					console.error('Failed to fetch my research topics:', error);
+				}
 			}
 		};
 

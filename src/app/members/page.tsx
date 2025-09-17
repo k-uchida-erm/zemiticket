@@ -29,7 +29,9 @@ export default function MembersPage(): React.ReactElement {
 				setSidebarData(data);
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'An unknown error occurred');
-				console.error('Failed to fetch members data:', err);
+				if (process.env.NODE_ENV === 'development') {
+					console.error('Failed to fetch members data:', err);
+				}
 			} finally {
 				setIsLoading(false);
 			}

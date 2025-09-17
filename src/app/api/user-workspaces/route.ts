@@ -4,14 +4,18 @@ import { UserWorkspace } from '../../../types/workspace';
 
 export async function GET(request: Request) {
   try {
-    console.log('user-workspaces API called');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('user-workspaces API called');
+    }
 
     // 環境変数の確認
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('Missing Supabase environment variables');
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Missing Supabase environment variables');
+      }
       return NextResponse.json(
         { error: 'Missing Supabase configuration' },
         { status: 500 }
@@ -21,7 +25,9 @@ export async function GET(request: Request) {
     const _supabase = await createSupabaseServerClient();
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');
-    console.log('userId:', userId);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('userId:', userId);
+    }
 
     if (!userId) {
       return NextResponse.json(
@@ -31,7 +37,9 @@ export async function GET(request: Request) {
     }
 
     // 開発用: データベースクエリをスキップしてフォールバックデータを返す
-    console.log('Using fallback data for development');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Using fallback data for development');
+    }
     const fallbackWorkspace: UserWorkspace = {
       workspace: {
         id: '00000000-0000-0000-0000-000000000001',
@@ -60,14 +68,18 @@ export async function GET(request: Request) {
       .eq('user_id', userId);
 
     if (membersError) {
-      console.error('Workspace members error:', membersError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Workspace members error:', membersError);
+      }
       return NextResponse.json(
         { error: 'Failed to fetch workspace members', details: membersError },
         { status: 500 }
       );
     }
 
-    console.log('workspaceMembers:', workspaceMembers);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('workspaceMembers:', workspaceMembers);
+    }
 
     // 開発用: データベースにデータがない場合のフォールバック
     if (!workspaceMembers || workspaceMembers.length === 0) {
@@ -95,7 +107,9 @@ export async function GET(request: Request) {
 
 
   } catch (error) {
-    console.error('Error in /api/user-workspaces:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error in /api/user-workspaces:', error);
+    }
     return NextResponse.json(
       {
         error: 'Internal server error',

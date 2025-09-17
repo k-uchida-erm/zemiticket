@@ -94,14 +94,18 @@ export default function ResearchTopicPage({ params }: ResearchTopicPageProps): R
 			setTickets(filteredTickets);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'An unknown error occurred');
-			console.error('Failed to fetch research topic data:', err);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Failed to fetch research topic data:', err);
+			}
 		} finally {
 			setIsLoading(false);
 		}
 	}, [isAuthenticated, user, currentWorkspace, resolvedParams.id]);
 
 	const handleStatusChange = useCallback(async (ticketId: string, newStatus: 'todo' | 'in_progress' | 'review' | 'done', affectedIds?: string[]) => {
-		console.log('[ResearchTopic] onStatusChange', { ticketId, newStatus, affectedIds });
+		if (process.env.NODE_ENV === 'development') {
+			console.log('[ResearchTopic] onStatusChange', { ticketId, newStatus, affectedIds });
+		}
 		// 楽観的更新（UIのみ即時更新）: ネストされたchildrenも含めて更新
 		const ids = new Set<string>([ticketId, ...(affectedIds || [])]);
 		const updateNode = (node: Ticket): Ticket => {
@@ -132,7 +136,9 @@ export default function ResearchTopicPage({ params }: ResearchTopicPageProps): R
 		});
 
 		try {
-			console.log('[ResearchTopic] POST update-status');
+			if (process.env.NODE_ENV === 'development') {
+				console.log('[ResearchTopic] POST update-status');
+			}
 			const res = await fetch('/api/tickets/update-status', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -158,7 +164,9 @@ export default function ResearchTopicPage({ params }: ResearchTopicPageProps): R
 				}
 			}
 		} catch (error) {
-			console.error('Failed to update ticket status:', error);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Failed to update ticket status:', error);
+			}
 		}
 	}, []);
 

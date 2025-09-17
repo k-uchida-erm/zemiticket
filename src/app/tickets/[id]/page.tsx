@@ -75,7 +75,9 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps): Rea
                     const data = await res.json();
                     setTicket(data.ticket as Ticket);
                   }
-                } catch (_) {}
+                } catch {
+                  // エラーは無視
+                }
               }}
             />
           </div>
@@ -116,7 +118,9 @@ export default function TicketDetailPage({ params }: TicketDetailPageProps): Rea
                         const data = await res.json();
                         setTicket(data.ticket as Ticket);
                       }
-                    } catch (_) {}
+                    } catch {
+                  // エラーは無視
+                }
                   }}
                 />
               </section>

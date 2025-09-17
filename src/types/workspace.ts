@@ -16,3 +16,4 @@ export interface UserWorkspace {
   workspace: Workspace;
   member: WorkspaceMember;
 }
+

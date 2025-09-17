@@ -20,7 +20,9 @@ export function useTicketDetailReorder() {
 			});
 			await Promise.all(updatePromises);
 		} catch (error) {
-			console.error('Error reordering subtasks:', error);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Error reordering subtasks:', error);
+			}
 			setSubs(
 				(subtasks || []).map(c => ({
 					...c,
@@ -56,7 +58,9 @@ export function useTicketDetailReorder() {
 			});
 			await Promise.all(updatePromises);
 		} catch (error) {
-			console.error('Error reordering todos:', error);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Error reordering todos:', error);
+			}
 			setSubs(
 				(subtasks || []).map(c => ({
 					...c,

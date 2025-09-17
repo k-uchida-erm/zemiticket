@@ -57,7 +57,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ ticket, children: children || [], ancestors, researchTopic });
   } catch (error) {
-    console.error('Error in tickets/[id] GET:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error in tickets/[id] GET:', error);
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -90,7 +92,9 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ticket: data });
   } catch (e) {
-    console.error('Error in tickets/[id] PATCH:', e);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error in tickets/[id] PATCH:', e);
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

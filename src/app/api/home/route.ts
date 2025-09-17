@@ -116,7 +116,9 @@ export async function GET(request: Request) {
 		const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 		if (!supabaseUrl || !supabaseAnonKey) {
-			console.error('Missing Supabase environment variables');
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Missing Supabase environment variables');
+			}
 			return NextResponse.json(
 				{
 					error: 'Missing Supabase configuration',
@@ -157,7 +159,9 @@ export async function GET(request: Request) {
 			.order('updated_at', { ascending: false });
 
 		if (allTicketsError) {
-			console.error('All tickets error:', allTicketsError);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('All tickets error:', allTicketsError);
+			}
 			return NextResponse.json(
 				{ error: 'Failed to fetch tickets' },
 				{ status: 500 }
@@ -182,7 +186,9 @@ export async function GET(request: Request) {
 			.order('name');
 
 		if (researchTopicsError) {
-			console.error('Research topics error:', researchTopicsError);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Research topics error:', researchTopicsError);
+			}
 		}
 
 		const researchTopicMap = new Map<string, string>();
@@ -234,7 +240,9 @@ export async function GET(request: Request) {
 			researchTopicColors: Object.fromEntries(researchTopicColorMap),
 		});
 	} catch (error) {
-		console.error('Error in /api/home:', error);
+		if (process.env.NODE_ENV === 'development') {
+			console.error('Error in /api/home:', error);
+		}
 		return NextResponse.json(
 			{ error: 'Internal server error' },
 			{ status: 500 }

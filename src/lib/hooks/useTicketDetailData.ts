@@ -79,7 +79,7 @@ export function useTicketDetailData(params: UseTicketDetailDataParams) {
 		setNewTodoTitle({});
 		setNewTodoEstimate({});
 		setDirty(false);
-	}, [parent.id, parent.title, parent.description, (parent as { due?: string }).due, titleRef, descRef, setEditableTitle, setEditableDesc, setEditableDue, setSubs, setOpenTodos, setAddingSub, setNewSubTitle, setNewSubDue, setAddingTodo, setNewTodoTitle, setNewTodoEstimate, setDirty]);
+	}, [parent.id, parent.title, parent.description, parent.due, titleRef, descRef, setEditableTitle, setEditableDesc, setEditableDue, setSubs, setOpenTodos, setAddingSub, setNewSubTitle, setNewSubDue, setAddingTodo, setNewTodoTitle, setNewTodoEstimate, setDirty, parent, subtasks]);
 
 	// recompute progress whenever subs change
 	useEffect(() => {

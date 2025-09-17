@@ -14,7 +14,9 @@ export async function GET(request: Request) {
       .eq('id', workspaceId);
 
     if (workspacesError) {
-      console.error('Workspaces error:', workspacesError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Workspaces error:', workspacesError);
+      }
     }
 
     // ワークスペースメンバー情報を取得
@@ -33,7 +35,9 @@ export async function GET(request: Request) {
       .eq('workspace_id', workspaceId);
 
     if (membersError) {
-      console.error('Workspace members error:', membersError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Workspace members error:', membersError);
+      }
     }
 
     // 現在のユーザーID（未使用のためプレースホルダーに置換）
@@ -49,7 +53,9 @@ export async function GET(request: Request) {
       .order('name');
 
     if (researchTopicsError) {
-      console.error('Research topics error:', researchTopicsError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Research topics error:', researchTopicsError);
+      }
     }
 
     // オーナー情報を取得
@@ -107,7 +113,9 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error in sidebar API:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error in sidebar API:', error);
+    }
     return NextResponse.json(
       {
         error: 'Internal server error',

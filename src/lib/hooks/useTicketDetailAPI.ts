@@ -30,7 +30,9 @@ export function useTicketDetailAPI() {
 			setDirty(false);
 			alert('変更が保存されました');
 		} catch (error) {
-			console.error('Failed to save changes:', error);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Failed to save changes:', error);
+			}
 			alert(
 				`保存に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
@@ -90,7 +92,9 @@ export function useTicketDetailAPI() {
 					};
 				})
 			);
-			console.error('Error updating todo:', error);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Error updating todo:', error);
+			}
 			alert('TODOの更新に失敗しました。');
 		}
 	}
@@ -177,7 +181,9 @@ export function useTicketDetailAPI() {
 			setEditingSub(prev => ({ ...prev, [subtaskId]: false }));
 			setDirty(true);
 		} catch (error) {
-			console.error('Error saving subtask:', error);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Error saving subtask:', error);
+			}
 			alert('サブタスクの保存に失敗しました。');
 		}
 	}
@@ -207,7 +213,9 @@ export function useTicketDetailAPI() {
 			);
 			setDirty(true);
 		} catch (error) {
-			console.error('Error deleting todo:', error);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Error deleting todo:', error);
+			}
 			alert('TODOの削除に失敗しました。');
 		}
 	}
@@ -270,7 +278,9 @@ export function useTicketDetailAPI() {
 			setNewTodoEstimate(prev => ({ ...prev, [subtask.id]: '' }));
 			setDirty(true);
 		} catch (error) {
-			console.error('Error creating todo:', error);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Error creating todo:', error);
+			}
 			alert('TODOの作成に失敗しました。');
 		}
 	}
@@ -323,7 +333,9 @@ export function useTicketDetailAPI() {
 			setNewSubDue('');
 			setDirty(true);
 		} catch (error) {
-			console.error('Error creating subtask:', error);
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Error creating subtask:', error);
+			}
 			alert('サブタスクの作成に失敗しました。');
 		}
 	}

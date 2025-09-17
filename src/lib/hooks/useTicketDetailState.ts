@@ -82,7 +82,7 @@ export function useTicketDetailState(
 		setNewTodoTitle({});
 		setNewTodoEstimate({});
 		setDirty(false);
-	}, [parent.id, parent.title, parent.description, parent.due]);
+	}, [parent.id, parent.title, parent.description, parent.due, subtasks]);
 
 	// Recompute progress whenever subs change
 	useEffect(() => {

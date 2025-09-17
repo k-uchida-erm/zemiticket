@@ -5,7 +5,9 @@ import { computeAggregateStatusFromStatuses, TicketStatus } from '../../../../li
 export async function POST(request: NextRequest) {
   try {
     const { ticketId, status, bulkUpdate = false, affectedTicketIds = [] } = await request.json();
-    console.log('[API] update-status input', { ticketId, status, bulkUpdate, affectedCount: affectedTicketIds.length });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[API] update-status input', { ticketId, status, bulkUpdate, affectedCount: affectedTicketIds.length });
+    }
 
     if (!ticketId || !status) {
       return NextResponse.json(
@@ -32,7 +34,9 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (mainError) {
-      console.error('Error updating main ticket status:', mainError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating main ticket status:', mainError);
+      }
       return NextResponse.json(
         { error: 'Failed to update ticket status' },
         { status: 500 }
@@ -41,14 +45,18 @@ export async function POST(request: NextRequest) {
 
     // 一括更新が必要な場合
     if (bulkUpdate && affectedTicketIds.length > 0) {
-      console.log('[API] bulk update targets', affectedTicketIds);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[API] bulk update targets', affectedTicketIds);
+      }
       const { error: bulkError } = await supabase
         .from('tickets')
         .update({ status })
         .in('id', affectedTicketIds);
 
       if (bulkError) {
-        console.error('Error updating bulk tickets:', bulkError);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error updating bulk tickets:', bulkError);
+        }
         return NextResponse.json(
           { error: 'Failed to update related tickets' },
           { status: 500 }
@@ -72,7 +80,9 @@ export async function POST(request: NextRequest) {
         .select('id, status')
         .eq('parent_id', currentParentId);
       if (childrenError) {
-        console.error('Error fetching children for parent', currentParentId, childrenError);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching children for parent', currentParentId, childrenError);
+        }
         break;
       }
 
@@ -89,12 +99,14 @@ export async function POST(request: NextRequest) {
       if (!parentRow) break;
 
       if (parentRow.status !== nextParentStatus) {
-        console.log('[API] recompute parent', { parentId: currentParentId, nextParentStatus });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[API] recompute parent', { parentId: currentParentId, nextParentStatus });
+        }
         await supabase
           .from('tickets')
           .update({ status: nextParentStatus })
           .eq('id', currentParentId);
-        updatedAncestors.push({ id: currentParentId, status: nextParentStatus });
+        updatedAncestors.push({ id: currentParentId, status: nextParentStatus as 'todo' | 'in_progress' | 'done' });
       } else {
         // 変更がなくても返してフロント側と整合を取れるようにする
         updatedAncestors.push({ id: currentParentId, status: parentRow.status as 'todo' | 'in_progress' | 'done' });
@@ -110,7 +122,9 @@ export async function POST(request: NextRequest) {
       updatedAncestors
     });
   } catch (error) {
-    console.error('Error in update-status API:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error in update-status API:', error);
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

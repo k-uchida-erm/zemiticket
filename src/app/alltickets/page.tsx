@@ -30,7 +30,9 @@ export default function AllTicketsPage(): React.ReactElement {
 				setHomeData(data);
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'An unknown error occurred');
-				console.error('Failed to fetch home data:', err);
+				if (process.env.NODE_ENV === 'development') {
+					console.error('Failed to fetch home data:', err);
+				}
 			} finally {
 				setIsLoading(false);
 			}

@@ -25,7 +25,9 @@ export default function DashboardPage(): React.ReactElement {
 					setHomeData(data);
 				}
 			} catch (error) {
-				console.error('Failed to fetch home data:', error);
+				if (process.env.NODE_ENV === 'development') {
+					console.error('Failed to fetch home data:', error);
+				}
 			} finally {
 				setIsLoading(false);
 			}

@@ -23,3 +23,4 @@ export default function ResearchTopicHeader({ name, color = '#6b7280' }: Researc
 }
 
 
+

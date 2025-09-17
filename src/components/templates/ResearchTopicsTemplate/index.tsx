@@ -28,7 +28,7 @@ export default function ResearchTopicsTemplate({ header, segmented, children }: 
 									options={segmented.options}
 									selected={segmented.selected}
 									onChange={segmented.onChange}
-									size={segmented.size || 'compact'}
+									size={segmented.size === 'default' ? 'normal' : (segmented.size || 'compact')}
 								/>
 							</div>
 						)}
@@ -40,5 +40,6 @@ export default function ResearchTopicsTemplate({ header, segmented, children }: 
 		</div>
 	);
 }
+
 
 
